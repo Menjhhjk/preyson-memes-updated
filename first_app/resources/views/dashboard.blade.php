@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PreySON - Admin Dashboard</title>
+    <title>PreySON - Dashboard</title>
     <style>
         * {
             box-sizing: border-box;
@@ -219,23 +219,37 @@
     </nav>
 
     <div class="container">
-        <h1 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 1.5rem;">Manage Vault</h1>
+        <h1 style="font-size: 2.2rem; font-weight: 900; margin-bottom: 1.5rem;">{{ auth()->user()->is_admin ? 'Manage Vault' : 'My Memes' }}</h1>
 
         @if(session('success'))
             <div class="alert-success">{{ session('success') }}</div>
         @endif
 
+        @if ($errors->any())
+            <div role="alert" style="background: #fef2f2; border: 2px solid #ef4444; color: #991b1b; padding: 1rem; border-radius: 12px; margin-bottom: 2rem;">
+                <p><strong>The request could not be completed:</strong></p>
+                <ul style="padding-left: 1.5rem;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="upload-card">
-            <h2 style="margin-bottom: 1rem; font-weight: 800;">Upload Single or Batch (.ZIP)</h2>
+            <h2 style="margin-bottom: 1rem; font-weight: 800;">Upload Memes</h2>
             <form action="{{ route('posts.store') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div class="form-group">
                     <label for="title">Title / Caption (Optional)</label>
-                    <input type="text" id="title" name="title" placeholder="Auto-generated from filename if empty">
+                    <input type="text" id="title" name="title" value="{{ old('title') }}" maxlength="255" placeholder="Auto-generated from filename if empty">
                 </div>
                 <div class="form-group">
-                    <label for="media">Select Media or .ZIP</label>
-                    <input type="file" id="media" name="media" accept="image/*,video/mp4,video/webm,video/quicktime,.zip" required>
+                    <label for="media">Select up to 6 images, GIFs, or videos</label>
+                    <input type="file" id="media" name="media[]" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov{{ auth()->user()->is_admin ? ',.zip' : '' }}" multiple required aria-describedby="upload-help">
+                    <p id="upload-help" style="margin-top: 0.5rem;">Up to 6 files, 100 MB total. Each file becomes a separate post.
+                        @if (auth()->user()->is_admin) You can also select one ZIP archive for a batch import. @endif
+                    </p>
                 </div>
                 <button type="submit" class="btn-yellow">🚀 Upload to Vault</button>
             </form>
@@ -265,6 +279,7 @@
                             <img src="{{ asset('storage/' . $post->media_path) }}" alt="{{ $post->title }}">
                         @endif
                         <p title="{{ $post->title }}">{{ $post->title }}</p>
+                        <a href="{{ route('posts.edit', $post) }}" style="display: block; padding: 0.6rem; color: #7c3aed; font-weight: 700;">Edit<span style="position: absolute; width: 1px; height: 1px; overflow: hidden;"> {{ $post->title }}</span></a>
                     </div>
                 @endforeach
             </div>
@@ -272,6 +287,16 @@
     </div>
 
     <script>
+        document.getElementById('media').addEventListener('change', function () {
+            const files = Array.from(this.files);
+            const total = files.reduce((sum, file) => sum + file.size, 0);
+            const hasZip = files.some(file => file.name.toLowerCase().endsWith('.zip'));
+            this.setCustomValidity(files.length > 6 ? 'Select up to 6 files.' :
+                hasZip && files.length > 1 ? 'Upload one ZIP archive separately.' :
+                total > 100 * 1024 * 1024 ? 'Selected files must total 100 MB or less.' : '');
+            this.reportValidity();
+        });
+
         function toggleSelectAll(master) {
             const checkboxes = document.querySelectorAll('.post-checkbox');
             checkboxes.forEach(cb => cb.checked = master.checked);

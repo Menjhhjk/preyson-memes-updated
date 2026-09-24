@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PreySON - Admin Login</title>
+    <title>PreySON - Sign In</title>
     <style>
         * {
             box-sizing: border-box;
@@ -150,8 +150,8 @@
             <img src="{{ asset('logo.png') }}" alt="PreySON Logo">
         </div>
 
-        <h2>PreySON Admin</h2>
-        <p>Sign in to manage your site</p>
+        <h2>Welcome to PreySON</h2>
+        <p>Sign in to share and manage your memes</p>
 
         @if ($errors->any())
             <div class="alert-error">
@@ -167,13 +167,14 @@
             @csrf
 
             <div class="form-group">
-                <label for="email">Email</label>
+                <label for="email">Email or Username</label>
                 <input 
-                    type="email" 
+                    type="text"
                     id="email" 
                     name="email" 
                     value="{{ old('email') }}" 
-                    placeholder="admin@gmail.com" 
+                    placeholder="Email address or username"
+                    autocomplete="username"
                     required 
                     autofocus
                 >
@@ -193,6 +194,9 @@
             <button type="submit" class="btn-submit">Sign In</button>
         </form>
 
+        <div class="footer-text">
+            Don't have an account? <a href="{{ route('register') }}">Sign Up</a>
+        </div>
         <div class="footer-text">
             <a href="/">&larr; Back to PreySON</a>
         </div>

@@ -282,7 +282,8 @@
             @auth
                 <a href="/dashboard" class="admin-link">Dashboard</a>
             @else
-                <a href="/login" class="admin-link">Admin Portal</a>
+                <a href="{{ route('login') }}" class="admin-link">Sign In</a>
+                <a href="{{ route('register') }}" class="admin-link">Sign Up</a>
             @endauth
         </div>
     </header>
