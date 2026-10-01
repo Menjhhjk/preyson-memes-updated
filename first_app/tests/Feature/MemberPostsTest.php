@@ -5,6 +5,9 @@ use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+require_once __DIR__.'/Auth/CaptchaTestHelpers.php';
 
 beforeEach(function () {
     Storage::fake('public');
@@ -18,18 +21,17 @@ function memberPost(?User $owner, string $title = 'Existing meme'): Post
     return Post::create(['user_id' => $owner?->id, 'title' => $title, 'media_path' => $path, 'media_type' => 'image']);
 }
 
-function memberSignupData(): array
+function memberSignupData(TestCase $testCase): array
 {
-    return ['name' => 'Jane', 'surname' => 'Doe', 'username' => 'Jane_Doe', 'email' => 'jane@example.com',
+    return [...solveColorCaptcha($testCase, 'register'), 'terms' => '1', 'username' => 'Jane_Doe', 'email' => 'jane@example.com',
         'password' => 'test-password', 'password_confirmation' => 'test-password'];
 }
 
 test('registration saves the member profile and never grants admin access', function () {
-    $this->post(route('register.store'), [...memberSignupData(), 'is_admin' => true])
+    $this->post(route('register.store'), [...memberSignupData($this), 'is_admin' => true])
         ->assertSessionHasNoErrors()->assertRedirect('/dashboard');
 
     $member = User::sole();
-    expect($member->surname)->toBe('Doe');
     expect($member->username)->toBe('jane_doe');
     expect($member->is_admin)->toBeFalse();
     expect(Hash::check('test-password', $member->password))->toBeTrue();
@@ -37,20 +39,20 @@ test('registration saves the member profile and never grants admin access', func
 });
 
 test('registration rejects missing details and mismatched passwords', function () {
-    $this->post(route('register.store'), [...memberSignupData(), 'surname' => '', 'username' => '', 'password_confirmation' => 'wrong'])
-        ->assertSessionHasErrors(['surname', 'username', 'password']);
+    $this->post(route('register.store'), [...memberSignupData($this), 'username' => '', 'password_confirmation' => 'wrong'])
+        ->assertSessionHasErrors(['username', 'password']);
     expect(User::count())->toBe(0);
 });
 
 test('registration rejects a duplicate username regardless of letter case', function () {
     User::factory()->create(['username' => 'jane_doe']);
-    $this->post(route('register.store'), memberSignupData())->assertSessionHasErrors('username');
+    $this->post(route('register.store'), memberSignupData($this))->assertSessionHasErrors('username');
     expect(User::count())->toBe(1);
 });
 
 test('members can sign in with their username', function () {
     $member = User::factory()->create(['username' => 'jane_doe']);
-    $this->post(route('login.store'), ['email' => 'Jane_Doe', 'password' => 'password'])->assertRedirect('/dashboard');
+    $this->post(route('login.store'), [...solveColorCaptcha($this), 'email' => 'Jane_Doe', 'password' => 'password'])->assertRedirect('/dashboard');
     $this->assertAuthenticatedAs($member);
 });
 

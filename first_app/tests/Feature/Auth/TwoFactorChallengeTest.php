@@ -4,6 +4,8 @@ use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 use Laravel\Fortify\Features;
 
+require_once __DIR__.'/CaptchaTestHelpers.php';
+
 beforeEach(function () {
     $this->skipUnlessFortifyHas(Features::twoFactorAuthentication());
 });
@@ -23,6 +25,7 @@ test('two factor challenge can be rendered', function () {
     $user = User::factory()->withTwoFactor()->create();
 
     $this->post(route('login'), [
+        ...solveColorCaptcha($this),
         'email' => $user->email,
         'password' => 'password',
     ]);

@@ -11,16 +11,23 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
 /**
  * @property int $id
- * @property string $name
+ * @property-read string $name Username alias for framework integrations.
+ * @property string $username
  * @property string $email
  * @property Carbon|null $email_verified_at
  * @property string $password
+ * @property bool $is_admin
+ * @property string $role
+ * @property string|null $avatar_path
+ * @property Carbon|null $premium_expires_at
+ * @property Carbon|null $terms_accepted_at
  * @property string|null $two_factor_secret
  * @property string|null $two_factor_recovery_codes
  * @property Carbon|null $two_factor_confirmed_at
@@ -28,12 +35,20 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'surname', 'username', 'email', 'password'])]
+#[Fillable(['username', 'email', 'password'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable;
+
+    // Fortify/passkeys and the retained security screens expect a display name.
+    protected $appends = ['name'];
+
+    public function getNameAttribute(): string
+    {
+        return $this->username ?? 'Member';
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -46,12 +61,40 @@ class User extends Authenticatable implements PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'premium_expires_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
 
+    /** @return HasMany<Post, $this> */
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->is_admin || $this->role === 'admin';
+    }
+
+    public function canModerate(): bool
+    {
+        return $this->isAdmin() || $this->role === 'moderator';
+    }
+
+    public function hasPremium(): bool
+    {
+        return $this->premium_expires_at !== null && $this->premium_expires_at->isFuture();
+    }
+
+    public function postLimit(): ?int
+    {
+        return $this->isAdmin() ? null : ($this->hasPremium() ? 30 : 6);
+    }
+
+    public function avatarUrl(): string
+    {
+        return $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : asset('avatar-default.svg');
     }
 }

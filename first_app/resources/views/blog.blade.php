@@ -1,340 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PreySON | Meme Vault</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: #ffffff;
-            color: #3b0764;
-        }
-
-        header {
-            background: #ffffff;
-            border-bottom: 3px solid #facc15;
-            padding: 0.9rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 4px 15px rgba(59, 7, 100, 0.06);
-        }
-
-        .brand-container {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            text-decoration: none;
-        }
-
-        .brand-logo {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #facc15;
-        }
-
-        .brand-name {
-            font-size: 1.5rem;
-            font-weight: 900;
-            color: #4c1d95;
-        }
-
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .view-switcher {
-            display: flex;
-            background: #faf5ff;
-            border: 2px solid #e9d5ff;
-            border-radius: 10px;
-            padding: 2px;
-        }
-
-        .view-btn {
-            background: transparent;
-            border: none;
-            padding: 0.45rem 0.9rem;
-            font-weight: 800;
-            font-size: 0.85rem;
-            color: #6b21a8;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-
-        .view-btn.active {
-            background: #facc15;
-            color: #3b0764;
-            box-shadow: 0 2px 5px rgba(250, 204, 21, 0.4);
-        }
-
-        .admin-link {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: #3b0764;
-            text-decoration: none;
-            padding: 0.5rem 1.1rem;
-            border-radius: 8px;
-            background: #facc15;
-            border: 2px solid #eab308;
-            box-shadow: 0 3px 0 #ca8a04;
-        }
-
-        /* Continuous Feed Layout */
-        .feed-mode {
-            max-width: 680px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 2.5rem;
-        }
-
-        .feed-mode .meme-card {
-            background: #ffffff;
-            border: 2px solid #f3e8ff;
-            border-radius: 18px;
-            overflow: hidden;
-            box-shadow: 0 8px 25px rgba(59, 7, 100, 0.08);
-        }
-
-        .feed-mode .meme-header {
-            padding: 1.25rem 1.5rem;
-        }
-
-        .feed-mode .meme-header h2 {
-            font-size: 1.35rem;
-            font-weight: 800;
-            color: #3b0764;
-            word-break: break-word;
-        }
-
-        .feed-mode .media-box {
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            max-height: 600px;
-        }
-
-        .feed-mode .media-box img, 
-        .feed-mode .media-box video {
-            width: 100%;
-            max-height: 600px;
-            object-fit: contain;
-        }
-
-        .feed-mode .meme-footer {
-            padding: 0.85rem 1.5rem;
-            background: #faf5ff;
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #6b21a8;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        /* TikTok-Style Snap Scroll */
-        .tiktok-mode {
-            height: calc(100vh - 65px);
-            overflow-y: scroll;
-            scroll-snap-type: y mandatory;
-            background: #000000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .tiktok-mode .meme-card {
-            scroll-snap-align: start;
-            scroll-snap-stop: always;
-            height: calc(100vh - 65px);
-            width: 100%;
-            max-width: 500px;
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #000;
-        }
-
-        .tiktok-mode .media-box img,
-        .tiktok-mode .media-box video {
-            width: 100%;
-            height: 100%;
-            max-height: calc(100vh - 65px);
-            object-fit: contain;
-        }
-
-        .tiktok-mode .meme-header {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            padding: 2rem 1.5rem 1.5rem;
-            background: linear-gradient(transparent, rgba(0,0,0,0.85));
-            color: #fff;
-            z-index: 10;
-        }
-
-        .tiktok-mode .meme-header h2 {
-            color: #facc15;
-            font-size: 1.15rem;
-            font-weight: 800;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-        }
-
-        .tiktok-mode .meme-footer {
-            display: none;
-        }
-
-        /* Grid Mode */
-        .grid-mode {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
-
-        .grid-mode .meme-card {
-            border: 2px solid #f3e8ff;
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(59, 7, 100, 0.05);
-        }
-
-        .grid-mode .media-box {
-            height: 250px;
-            background: #000;
-        }
-
-        .grid-mode .media-box img,
-        .grid-mode .media-box video {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-
-        .grid-mode .meme-header {
-            padding: 0.9rem;
-        }
-
-        .grid-mode .meme-header h2 {
-            font-size: 1rem;
-            color: #3b0764;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .grid-mode .meme-footer {
-            padding: 0.6rem 0.9rem;
-            background: #faf5ff;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #6b21a8;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .badge {
-            background: #facc15;
-            color: #3b0764;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 800;
-        }
-    </style>
-</head>
-<body>
-
-    <header>
-        <a href="/" class="brand-container">
-            <img src="{{ asset('logo.png') }}" alt="PreySON Logo" class="brand-logo">
-            <span class="brand-name">PreySON</span>
-        </a>
-
-        <div class="header-controls">
-            <div class="view-switcher">
-                <button class="view-btn active" onclick="switchView('feed')">Feed</button>
-                <button class="view-btn" onclick="switchView('tiktok')">⚡ Snap</button>
-                <button class="view-btn" onclick="switchView('grid')">Grid</button>
-            </div>
-
-            @auth
-                <a href="/dashboard" class="admin-link">Dashboard</a>
-            @else
-                <a href="{{ route('login') }}" class="admin-link">Sign In</a>
-                <a href="{{ route('register') }}" class="admin-link">Sign Up</a>
-            @endauth
-        </div>
-    </header>
-
-    <main id="memeContainer" class="feed-mode">
-        @forelse ($posts as $post)
-            <article class="meme-card">
-                <div class="meme-header">
-                    <h2>{{ $post->title }}</h2>
-                </div>
-
-                <div class="media-box">
-                    @if ($post->media_type === 'video')
-                        <video src="{{ asset('storage/' . $post->media_path) }}" controls loop playsinline></video>
-                    @else
-                        <img src="{{ asset('storage/' . $post->media_path) }}" alt="{{ $post->title }}" loading="lazy">
-                    @endif
-                </div>
-
-                <div class="meme-footer">
-                    <span>Posted {{ $post->created_at->diffForHumans() }}</span>
-                    <span class="badge">{{ strtoupper($post->media_type) }}</span>
-                </div>
-            </article>
-        @empty
-            <div style="text-align: center; padding: 4rem; color: #6b21a8; font-weight: 700;">
-                No memes found. Upload some in the Admin Dashboard!
-            </div>
-        @endforelse
-    </main>
-
-    <script>
-        function switchView(mode) {
-            const container = document.getElementById('memeContainer');
-            const buttons = document.querySelectorAll('.view-btn');
-
-            buttons.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            if (mode === 'feed') {
-                container.className = 'feed-mode';
-                document.body.style.overflow = 'auto';
-            } else if (mode === 'tiktok') {
-                container.className = 'tiktok-mode';
-                document.body.style.overflow = 'hidden';
-            } else if (mode === 'grid') {
-                container.className = 'grid-mode';
-                document.body.style.overflow = 'auto';
-            }
-        }
-    </script>
-
-</body>
-</html>
+@extends('layouts.site')
+@section('title', 'The meme feed')
+@section('content')
+<div class="page-heading"><div><span class="eyebrow">GOOD SCROLLS AHEAD</span><h1>Your daily dose of nonsense.</h1><p>A fresh mix of memes, questionable humor, and very good GIFs.</p></div><a class="button" href="{{ auth()->check() ? route('dashboard') : route('login') }}">＋ Create post</a></div>
+<div class="feed-layout">
+<section class="feed-column" aria-label="Posts">
+<form class="panel filter-panel" method="GET" action="{{ route('home') }}" role="search">
+<div class="search-row"><label class="sr-only" for="feed-search">Search post titles</label><input class="control" id="feed-search" name="q" type="search" value="{{ $search }}" placeholder="Find your next laugh…" maxlength="100"><button class="button secondary" type="submit">Search</button></div>
+<div class="filter-row"><div class="filter-tabs" aria-label="Media category">
+@foreach(['all' => 'All posts', 'image' => 'Images', 'gif' => 'GIFs', 'video' => 'Videos'] as $key => $label)
+<a href="{{ route('home', ['q' => $search, 'category' => $key, 'sort' => $sort]) }}" @class(['filter-tab', 'active' => $category === $key]) @if($category === $key) aria-current="true" @endif>{{ $label }}</a>
+@endforeach
+</div><label class="sort-label">Sort by <select name="sort" data-auto-submit><option value="random" @selected($sort === 'random')>Surprise me</option><option value="newest" @selected($sort === 'newest')>Newest first</option><option value="oldest" @selected($sort === 'oldest')>Oldest first</option><option value="reactions" @selected($sort === 'reactions')>Most reactions</option></select></label></div>
+<input type="hidden" name="category" value="{{ $category }}">
+</form>
+<div class="feed-meta"><span>{{ number_format($posts->total()) }} {{ $posts->total() === 1 ? 'post' : 'posts' }} · {{ $sort === 'random' ? 'A little shuffle, a lot of fun' : 'Your feed, your order' }}</span><a href="{{ route('home', ['category' => $category, 'q' => $search]) }}">↻ Shuffle the feed</a></div>
+@forelse($posts as $post)
+@php
+$selectedReaction = $post->reactions->first()?->emoji;
+$counts = $reactionCounts[$post->id] ?? [];
+$reactionNames = ['👍' => 'Like', '❤️' => 'Love', '😂' => 'Haha', '😮' => 'Wow', '😢' => 'Sad', '😡' => 'Angry', '🔥' => 'Fire', '🎉' => 'Celebrate', '🤯' => 'Mind blown', '👏' => 'Applause', '💀' => 'Dead funny', '🥰' => 'Adore'];
+@endphp
+<article class="post-card" id="post-{{ $post->id }}">
+<header class="post-header"><div class="post-heading"><h2>{{ $post->title }}</h2><span class="badge type">{{ strtoupper($post->media_type) }}</span></div><div class="post-owner"><img class="avatar" src="{{ $post->user?->avatarUrl() ?? asset('avatar-default.svg') }}" alt=""><div class="owner-details"><strong @class(['premium-owner' => $post->user?->hasPremium()])>{{ $post->user?->username ?? 'Former member' }}</strong>@if($post->user?->hasPremium())<span class="badge premium">✦ Premium</span>@endif<span aria-hidden="true">·</span><time datetime="{{ $post->created_at->toIso8601String() }}" title="{{ $post->created_at->format('F j, Y g:i A').' UTC' }}">{{ $post->created_at->format('M j, Y') }}</time></div>@if(auth()->check() && $post->canBeManagedBy(auth()->user()))<a class="post-actions" href="{{ route('posts.edit', ['post' => $post, 'return_to' => 'feed']) }}">Edit ↗</a>@endif</div></header>
+<div class="post-media">@if($post->media_type === 'video')<video controls playsinline preload="metadata" aria-label="{{ $post->title }}"><source src="{{ asset('storage/'.$post->media_path) }}">Your browser cannot play this video.</video>@else<img src="{{ asset('storage/'.$post->media_path) }}" alt="{{ $post->title }}" loading="lazy" decoding="async">@endif</div>
+<footer class="post-footer">
+<div class="reaction-bar" aria-label="React to this post">
+@foreach($defaultReactions as $emoji)
+@auth
+<form class="reaction-form" method="POST" action="{{ route('posts.react', $post) }}">@csrf<input type="hidden" name="emoji" value="{{ $emoji }}"><button class="reaction-button" data-emoji="{{ $emoji }}" type="submit" aria-label="{{ $reactionNames[$emoji] }}" title="{{ $reactionNames[$emoji] }}" aria-pressed="{{ $selectedReaction === $emoji ? 'true' : 'false' }}"><span aria-hidden="true">{{ $emoji }}</span><span class="reaction-count">{{ $counts[$emoji] ?? '' }}</span></button></form>
+@else
+<a class="reaction-button" href="{{ route('login') }}" aria-label="Sign in to react: {{ $reactionNames[$emoji] }}"><span aria-hidden="true">{{ $emoji }}</span><span class="reaction-count">{{ $counts[$emoji] ?? '' }}</span></a>
+@endauth
+@endforeach
+@if(auth()->check() && auth()->user()->hasPremium())
+<details class="more-reactions"><summary>✦ More Reaction</summary><div class="reaction-picker">
+@foreach($premiumReactions as $emoji)<form class="reaction-form" method="POST" action="{{ route('posts.react', $post) }}">@csrf<input type="hidden" name="emoji" value="{{ $emoji }}"><button class="reaction-button" data-emoji="{{ $emoji }}" type="submit" aria-label="{{ $reactionNames[$emoji] }}" title="{{ $reactionNames[$emoji] }}" aria-pressed="{{ $selectedReaction === $emoji ? 'true' : 'false' }}"><span aria-hidden="true">{{ $emoji }}</span><span class="reaction-count">{{ $counts[$emoji] ?? '' }}</span></button></form>@endforeach
+</div></details>
+@else<a class="small" href="{{ route('premium.index') }}" title="Unlock extra reactions with Premium">✦ More</a>@endif
+</div>
+<div class="reaction-summary"><span><span class="reaction-total">{{ $post->reactions_count }}</span> reactions <span class="extra-reaction-summary">@foreach($premiumReactions as $emoji)@if(($counts[$emoji] ?? 0) > 0)<span title="{{ $reactionNames[$emoji] }}">{{ $emoji }} {{ $counts[$emoji] }}</span> @endif @endforeach</span></span><span>One mood per meme.</span></div>
+<div class="reaction-feedback small" role="status" aria-live="polite"></div>
+@if(auth()->check() && $post->canBeManagedBy(auth()->user()))
+<details class="inline-edit"><summary>Edit this post here</summary><form method="POST" action="{{ route('posts.update', $post) }}" enctype="multipart/form-data">@csrf @method('PUT')<input type="hidden" name="return_to" value="feed"><label class="field">Post title<input name="title" value="{{ $post->title }}" required maxlength="255"></label><label class="field">Replace media <span class="muted small">Optional · up to 100 MB</span><input type="file" name="media" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/quicktime"></label><button class="button small" type="submit">Save changes</button></form><form method="POST" action="{{ route('posts.destroy', $post) }}" data-confirm="Delete this post and its reactions? This cannot be undone." style="margin-top:12px">@csrf @method('DELETE')<input type="hidden" name="return_to" value="feed"><button class="button danger small" type="submit">Delete post</button></form></details>
+@endif
+</footer></article>
+@empty
+<div class="panel empty-state"><div class="empty-symbol" aria-hidden="true">☺</div><h2>{{ $search !== '' || $category !== 'all' ? 'No memes in this corner yet.' : 'Fresh start. First laugh is yours.' }}</h2><p>{{ $search !== '' || $category !== 'all' ? 'Try another search or browse all posts for a little inspiration.' : 'The feed is ready for its first meme. Share an image, GIF, or video and get things rolling.' }}</p><a class="button" href="{{ $search !== '' || $category !== 'all' ? route('home') : (auth()->check() ? route('dashboard') : route('login')) }}">{{ $search !== '' || $category !== 'all' ? 'Show all posts' : '＋ Share the first meme' }}</a></div>
+@endforelse
+@if($posts->hasPages())<nav class="pagination" aria-label="Post pages">@if($posts->onFirstPage())<span>← Previous</span>@else<a class="button secondary small" href="{{ $posts->previousPageUrl() }}">← Previous</a>@endif<span>Page {{ $posts->currentPage() }} of {{ $posts->lastPage() }}</span>@if($posts->hasMorePages())<a class="button secondary small" href="{{ $posts->nextPageUrl() }}">Next →</a>@else<span>Next →</span>@endif</nav>@endif
+</section>
+<aside class="feed-aside" aria-label="Community information"><div class="panel premium-card"><div class="premium-star" aria-hidden="true">✦</div><span class="eyebrow">A LITTLE EXTRA</span><h2>Go full PreySON.</h2><p>Serious perks.<br>Entirely unserious billing.</p><ul><li>Room for 30 posts</li><li>More ways to react</li><li>A name that shines</li></ul><a class="button full-width" href="{{ route('premium.index') }}">Meet Premium ↗</a><p class="small" style="text-align:center;margin:12px 0 0">30 days. Zero real payments.</p></div><div class="panel"><h3>A good place to laugh.</h3><div class="community-rule"><span>♡</span>Be kind to the humans behind the memes.</div><div class="community-rule"><span>↗</span>Share things you have permission to post.</div><div class="community-rule"><span>☺</span>Keep personal information to yourself.</div></div><p class="small muted">Images · GIFs · Videos<br>One community. Many questionable jokes.</p></aside>
+</div>
+@endsection

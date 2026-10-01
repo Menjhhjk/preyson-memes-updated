@@ -2,9 +2,8 @@
 
 namespace App\Concerns;
 
-use App\Models\User;
+use App\Rules\UniqueAccountField;
 use Illuminate\Contracts\Validation\ValidationRule;
-use Illuminate\Validation\Rule;
 
 trait ProfileValidationRules
 {
@@ -16,19 +15,19 @@ trait ProfileValidationRules
     protected function profileRules(?int $userId = null): array
     {
         return [
-            'name' => $this->nameRules(),
+            'username' => $this->usernameRules($userId),
             'email' => $this->emailRules($userId),
         ];
     }
 
     /**
-     * Get the validation rules used to validate user names.
+     * New or changed usernames need six characters; existing short logins can be retained.
      *
      * @return array<int, ValidationRule|array<mixed>|string>
      */
-    protected function nameRules(): array
+    protected function usernameRules(?int $userId = null, int $minimum = 6): array
     {
-        return ['required', 'string', 'max:255'];
+        return ['required', 'string', 'min:'.$minimum, 'max:50', 'regex:/\A[a-z0-9_.-]+\z/i', new UniqueAccountField('username', $userId)];
     }
 
     /**
@@ -41,11 +40,9 @@ trait ProfileValidationRules
         return [
             'required',
             'string',
-            'email',
+            'email:rfc',
             'max:255',
-            $userId === null
-                ? Rule::unique(User::class)
-                : Rule::unique(User::class)->ignore($userId),
+            new UniqueAccountField('email', $userId),
         ];
     }
 }

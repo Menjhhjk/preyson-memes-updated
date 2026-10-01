@@ -15,11 +15,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        // Seeding is idempotent and does not reset an existing administrator's password.
+        $admin = User::firstOrNew(['email' => 'admin@gmail.com']);
+        if (! $admin->exists) {
+            $admin->forceFill([
+                'username' => 'preyson_admin',
+                'password' => 'pass@123', 'is_admin' => true, 'role' => 'admin',
+            ])->save();
+        }
     }
 }

@@ -2,11 +2,25 @@
 
 namespace App\Http\Middleware;
 
+use Closure;
 use Illuminate\Http\Request;
+use Inertia\Inertia;
 use Inertia\Middleware;
+use Symfony\Component\HttpFoundation\Response;
 
 class HandleInertiaRequests extends Middleware
 {
+    public function handle(Request $request, Closure $next): Response
+    {
+        // The retained security screens use Inertia; community screens use Blade.
+        if ($request->header('X-Inertia') && $request->isMethod('GET')
+            && $request->routeIs('home', 'dashboard', 'profile.*', 'premium.*', 'accounts.*', 'posts.edit', 'login', 'register', 'policies')) {
+            return Inertia::location($request->fullUrl());
+        }
+
+        return parent::handle($request, $next);
+    }
+
     /**
      * The root template that's loaded on the first page visit.
      *

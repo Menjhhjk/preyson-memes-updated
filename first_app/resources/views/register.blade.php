@@ -170,7 +170,8 @@
        </div>
 
        @if ($errors->any())
-           <div role="alert" style="background: #fef2f2; color: #991b1b; padding: 1rem; margin-bottom: 1rem;">
+           <div id="registration-errors" role="alert" tabindex="-1" style="background: #fef2f2; color: #991b1b; padding: 1rem; margin-bottom: 1rem;">
+               <p style="margin-bottom: .5rem;">Please fix the following errors:</p>
                <ul style="padding-left: 1rem;">
                    @foreach ($errors->all() as $error)
                        <li>{{ $error }}</li>
@@ -178,27 +179,18 @@
                </ul>
            </div>
        @endif
-       <form action="{{ route('register.store') }}" method="POST">
+       <form action="{{ route('register.store') }}" method="POST" novalidate>
            @csrf
-           <div class="form-row">
-               <div class="form-group">
-                   <label for="name">First Name</label>
-                   <input type="text" id="name" name="name" value="{{ old('name') }}" maxlength="255" autocomplete="given-name" placeholder="John" required>
-               </div>
-               <div class="form-group">
-                   <label for="surname">Surname</label>
-                   <input type="text" id="surname" name="surname" value="{{ old('surname') }}" maxlength="255" autocomplete="family-name" placeholder="Doe" required>
-               </div>
-           </div>
-
            <div class="form-group">
                <label for="username">Username</label>
-               <input type="text" id="username" name="username" value="{{ old('username') }}" maxlength="50" autocomplete="username" placeholder="johndoe" pattern="[A-Za-z0-9_]+" aria-describedby="username-help" required>
+               <input type="text" id="username" name="username" value="{{ old('username') }}" minlength="6" maxlength="50" autocomplete="username" placeholder="meme_fan" pattern="[A-Za-z0-9_.\-]+" aria-describedby="username-help" required>
+               <p id="username-help" style="font-size: .78rem; margin-top: .4rem;">6–50 characters: letters, numbers, dots, underscores, or hyphens.</p>
            </div>
 
            <div class="form-group">
                <label for="email">Email Address</label>
                <input type="email" id="email" name="email" value="{{ old('email') }}" maxlength="255" autocomplete="email" placeholder="john@example.com" required>
+               <p style="font-size: .78rem; margin-top: .4rem; color: #655974;">Demo only: a made-up email is fine. No inbox or verification is needed.</p>
            </div>
 
            <div class="form-group">
@@ -217,16 +209,23 @@
                </div>
            </div>
 
+           @include('partials.color-captcha')
+
+           <label style="display: flex; gap: .65rem; align-items: flex-start; font-weight: 500; line-height: 1.5; margin: 1rem 0;">
+               <input type="checkbox" name="terms" value="1" required @checked(old('terms')) style="width: 1.1rem; height: 1.1rem; flex-shrink: 0; margin-top: .2rem; accent-color: #7c3aed;">
+               <span>I agree to the <a href="{{ route('policies') }}#terms" target="_blank" rel="noopener">demo Terms of Service</a> and acknowledge the <a href="{{ route('policies') }}#privacy" target="_blank" rel="noopener">Privacy Notice</a> (opens a new tab).</span>
+           </label>
            <button type="submit" class="btn-submit">Sign Up</button>
        </form>
 
-       <p id="username-help" style="margin-top: 1rem; font-size: 0.85rem;">Usernames use letters, numbers, and underscores. Passwords need at least 8 characters.</p>
+       <p style="margin-top: 1rem; font-size: 0.85rem;">Passwords need at least 8 characters.</p>
        <div class="footer-text">
            Already have an account? <a href="{{ route('login') }}">Sign In</a>
        </div>
    </div>
 
    <script>
+       document.getElementById('registration-errors')?.focus();
        function toggleVisibility(inputId, btn) {
            const input = document.getElementById(inputId);
            if (input.type === 'password') {

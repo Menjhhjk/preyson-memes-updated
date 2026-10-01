@@ -5,7 +5,10 @@ namespace App\Actions\Fortify;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Services\ColorCaptcha;
+use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
@@ -26,19 +29,33 @@ class CreateNewUser implements CreatesNewUsers
             $input['email'] = strtolower(trim($input['email']));
         }
 
-        Validator::make($input, [
+        $validator = Validator::make($input, [
             ...$this->profileRules(),
-            'surname' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:50', 'regex:/\A[a-z0-9_]+\z/', 'unique:users,username'],
             'password' => $this->passwordRules(),
-        ])->validate();
+            'password_confirmation' => ['required', 'string'],
+            'terms' => ['required', 'accepted'],
+        ]);
+        // CAPTCHA remains single-use, but its errors join the other form errors.
+        $validator->after(function (ValidatorContract $validator): void {
+            try {
+                app(ColorCaptcha::class)->validate(request(), 'register');
+            } catch (ValidationException $exception) {
+                foreach ($exception->errors() as $field => $messages) {
+                    foreach ($messages as $message) {
+                        $validator->errors()->add($field, $message);
+                    }
+                }
+            }
+        });
+        $validator->validate();
 
-        return User::create([
-            'name' => $input['name'],
-            'surname' => $input['surname'],
+        $user = new User([
             'username' => $input['username'],
             'email' => $input['email'],
             'password' => $input['password'],
         ]);
+        $user->forceFill(['terms_accepted_at' => now(), 'terms_version' => '2026-10-01'])->save();
+
+        return $user;
     }
 }

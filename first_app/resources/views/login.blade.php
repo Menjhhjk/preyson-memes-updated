@@ -13,6 +13,7 @@
         }
 
         body {
+            padding: 1.5rem 1rem;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -28,7 +29,7 @@
             box-shadow: 0 15px 35px rgba(109, 40, 217, 0.12);
             border: 1px solid #ede9fe;
             width: 100%;
-            max-width: 400px;
+            max-width: 440px;
             text-align: center;
         }
 
@@ -154,7 +155,7 @@
         <p>Sign in to share and manage your memes</p>
 
         @if ($errors->any())
-            <div class="alert-error">
+            <div class="alert-error" role="alert">
                 <ul>
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -163,7 +164,7 @@
             </div>
         @endif
 
-        <form action="/login" method="POST">
+        <form action="{{ route('login.store') }}" method="POST">
             @csrf
 
             <div class="form-group">
@@ -186,10 +187,13 @@
                     type="password" 
                     id="password" 
                     name="password" 
+                    autocomplete="current-password"
                     placeholder="••••••••" 
                     required
                 >
             </div>
+
+            @include('partials.color-captcha')
 
             <button type="submit" class="btn-submit">Sign In</button>
         </form>

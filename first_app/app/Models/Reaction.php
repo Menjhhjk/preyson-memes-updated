@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Reaction extends Model
+{
+    public const DEFAULT_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+
+    public const PREMIUM_EMOJIS = ['🔥', '🎉', '🤯', '👏', '💀', '🥰'];
+
+    protected $fillable = ['post_id', 'user_id', 'emoji'];
+
+    /** @return BelongsTo<Post, $this> */
+    public function post(): BelongsTo
+    {
+        return $this->belongsTo(Post::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}

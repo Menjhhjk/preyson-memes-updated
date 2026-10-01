@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Middleware\ValidateColorCaptcha;
 use App\Models\User;
+use App\Services\ColorCaptcha;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +15,12 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use Laravel\Fortify\Actions\AttemptToAuthenticate;
+use Laravel\Fortify\Actions\CanonicalizeUsername;
+use Laravel\Fortify\Actions\EnsureLoginIsNotThrottled;
+use Laravel\Fortify\Actions\PrepareAuthenticatedSession;
+use Laravel\Fortify\Contracts\RedirectsIfTwoFactorAuthenticatable;
+use Laravel\Fortify\Features;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -42,6 +50,14 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::createUsersUsing(CreateNewUser::class);
+        Fortify::authenticateThrough(fn () => array_filter([
+            config('fortify.limiters.login') ? null : EnsureLoginIsNotThrottled::class,
+            config('fortify.lowercase_usernames') ? CanonicalizeUsername::class : null,
+            ValidateColorCaptcha::class,
+            Features::enabled(Features::twoFactorAuthentication()) ? RedirectsIfTwoFactorAuthenticatable::class : null,
+            AttemptToAuthenticate::class,
+            PrepareAuthenticatedSession::class,
+        ]));
         Fortify::authenticateUsing(function (Request $request) {
             $identifier = strtolower(trim((string) $request->input('email')));
             $field = str_contains($identifier, '@') ? 'email' : 'username';
@@ -56,7 +72,9 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
-        Fortify::loginView(fn () => view('login'));
+        Fortify::loginView(fn (Request $request) => view('login', [
+            'captcha' => app(ColorCaptcha::class)->issue($request, 'login'),
+        ]));
 
         Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
             'email' => $request->email,
@@ -72,7 +90,9 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => view('register'));
+        Fortify::registerView(fn (Request $request) => view('register', [
+            'captcha' => app(ColorCaptcha::class)->issue($request, 'register'),
+        ]));
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 
