@@ -11,7 +11,7 @@ function colorCheckRegistration(): array
     return [
         'username' => 'demo_member',
         'email' => 'demo@this-domain-does-not-exist.invalid',
-        'password' => 'demo-password', 'password_confirmation' => 'demo-password', 'terms' => '1',
+        'password' => 'Demo-password1!', 'password_confirmation' => 'Demo-password1!', 'terms' => '1',
     ];
 }
 

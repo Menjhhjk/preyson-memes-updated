@@ -26,6 +26,10 @@ try {
         throw new RuntimeException($kernel->output());
     }
     echo $kernel->output();
+    if ($kernel->call('preyson:protect-media') !== 0) {
+        throw new RuntimeException($kernel->output());
+    }
+    echo $kernel->output();
     $reset = in_array('--reset', $argv, true);
     $status = $kernel->call($reset ? 'preyson:reset-demo' : 'db:seed', ['--force' => true]);
     echo $kernel->output();

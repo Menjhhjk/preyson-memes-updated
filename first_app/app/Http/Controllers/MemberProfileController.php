@@ -5,12 +5,14 @@ namespace App\Http\Controllers;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
 use App\Support\AccountSessions;
+use App\Support\PostFiles;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
@@ -26,7 +28,7 @@ class MemberProfileController extends Controller
 
     public function update(Request $request): RedirectResponse
     {
-        $member = $request->user();
+        $member = $request->user()->refresh();
         // PATCH supports partial profile updates; PUT remains the complete form.
         if ($request->isMethod('PATCH')) {
             foreach (['username', 'email'] as $field) {
@@ -46,6 +48,12 @@ class MemberProfileController extends Controller
             'current_password' => [$request->filled('password') ? 'required' : 'nullable', 'current_password'],
             'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'extensions:jpg,jpeg,png,webp', 'max:2048', 'dimensions:max_width=6000,max_height=6000'],
             'remove_avatar' => ['nullable', 'boolean'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'profile_visibility' => ['sometimes', Rule::in(['public', 'private'])],
+            'email_visible' => ['sometimes', 'boolean'],
+            'profile_background' => ['sometimes', Rule::in(['default', 'solid', 'gradient'])],
+            'profile_color_one' => ['sometimes', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'profile_color_two' => ['sometimes', 'regex:/^#[0-9a-fA-F]{6}$/'],
         ]);
         if (Str::lower($member->email) === 'admin@gmail.com' && $data['email'] !== 'admin@gmail.com') {
             throw ValidationException::withMessages(['email' => 'The main administrator must keep admin@gmail.com.']);
@@ -54,6 +62,14 @@ class MemberProfileController extends Controller
             unset($data['password']);
         }
         unset($data['current_password'], $data['avatar'], $data['remove_avatar']);
+
+        if (! $member->hasPremium()) {
+            foreach (['profile_background', 'profile_color_one', 'profile_color_two'] as $field) {
+                if (isset($data[$field]) && $data[$field] !== $member->getAttribute($field)) {
+                    throw ValidationException::withMessages([$field => 'An active Premium subscription is needed to customize your profile background.']);
+                }
+            }
+        }
 
         $oldPath = $member->avatar_path;
         $newPath = null;
@@ -69,6 +85,19 @@ class MemberProfileController extends Controller
 
         try {
             DB::transaction(function () use ($request, $member, $data) {
+                // Uploads also lock the owner. Finish protecting legacy files before
+                // committing a private profile, including concurrent uploads.
+                $member = User::query()->lockForUpdate()->findOrFail($member->id);
+                if (($data['profile_visibility'] ?? $member->profile_visibility) === 'private') {
+                    try {
+                        foreach ($member->posts()->pluck('media_path') as $path) {
+                            PostFiles::protect($path);
+                        }
+                    } catch (Throwable $exception) {
+                        report($exception);
+                        throw ValidationException::withMessages(['profile_visibility' => 'Your existing uploads could not be protected. Your privacy setting was not changed. Please ask the administrator to check media storage.']);
+                    }
+                }
                 $oldEmail = $member->email;
                 if ($oldEmail !== $data['email']) {
                     $member->email_verified_at = null;
@@ -92,6 +121,8 @@ class MemberProfileController extends Controller
             $request->session()->regenerate();
         }
 
+        $request->user()->refresh();
+
         return to_route('profile.edit')->with('success', 'Profile saved.');
     }
 
@@ -114,7 +145,7 @@ class MemberProfileController extends Controller
 
             return $paths;
         });
-        Storage::disk('public')->delete($paths);
+        PostFiles::delete($paths);
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -14,7 +14,7 @@ class HandleInertiaRequests extends Middleware
     {
         // The retained security screens use Inertia; community screens use Blade.
         if ($request->header('X-Inertia') && $request->isMethod('GET')
-            && $request->routeIs('home', 'dashboard', 'profile.*', 'premium.*', 'accounts.*', 'posts.edit', 'login', 'register', 'policies')) {
+            && $request->routeIs('home', 'dashboard', 'profile.*', 'profiles.*', 'reports.*', 'premium.*', 'accounts.*', 'posts.edit', 'posts.show', 'comments.show', 'login', 'register', 'policies')) {
             return Inertia::location($request->fullUrl());
         }
 

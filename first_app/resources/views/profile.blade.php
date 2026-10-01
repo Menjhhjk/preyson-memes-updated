@@ -21,13 +21,29 @@
                 <label class="field">Username<input name="username" value="{{ old('username', $member->username) }}" required minlength="{{ min(6, strlen($member->username)) }}" maxlength="50" pattern="[A-Za-z0-9_.\-]+" autocomplete="username"><small class="muted">New usernames need 6–50 characters: letters, numbers, dots, underscores, or hyphens.</small></label>
                 <label class="field">Email<input type="email" name="email" value="{{ old('email', $member->email) }}" required maxlength="255" autocomplete="email" @readonly(strtolower($member->email) === 'admin@gmail.com')><small class="muted">This can be made up; it only identifies your account.</small></label>
             </div>
+            <label class="field">About you<textarea name="description" rows="4" maxlength="1000" data-character-count="bio-count" placeholder="Your sense of humor, in a few words…">{{ old('description', $member->description) }}</textarea><small class="muted" id="bio-count" aria-live="polite">0 / 1,000</small></label>
+            <h2>Your space, your choice</h2>
+            <div class="form-grid">
+                <label class="field">Profile visibility<select name="profile_visibility"><option value="public" @selected(old('profile_visibility', $member->profile_visibility) === 'public')>Public</option><option value="private" @selected(old('profile_visibility', $member->profile_visibility) === 'private')>Private</option></select><small class="muted">Private hides your bio, stats, and posts from visitors and the feed. Your username and avatar remain visible. You and the moderation team keep access. Comments you leave on other public posts stay visible.</small></label>
+                <label class="field">Email visibility<select name="email_visible"><option value="0" @selected(!old('email_visible', $member->email_visible))>Hidden</option><option value="1" @selected(old('email_visible', $member->email_visible))>Visible on my profile</option></select><small class="muted">A private profile still hides your email from visitors. Administrators can manage account emails regardless of this setting.</small></label>
+            </div>
+            <div class="profile-customization">
+                <h2>✦ Set the mood</h2><p class="muted small">Premium members can choose the background everyone sees on their profile.</p>
+                @if($member->hasPremium())
+                <div data-profile-colors>
+                    <label class="field">Background<select name="profile_background" data-background-mode>@foreach(['default' => 'PreySON default', 'solid' => 'One solid color', 'gradient' => 'Two-color gradient'] as $value => $label)<option value="{{ $value }}" @selected(old('profile_background', $member->profile_background) === $value)>{{ $label }}</option>@endforeach</select></label>
+                    <div class="form-grid"><label class="field">First color<input type="color" name="profile_color_one" value="{{ old('profile_color_one', $member->profile_color_one) }}" data-background-one></label><label class="field">Second color <small>Used for gradients</small><input type="color" name="profile_color_two" value="{{ old('profile_color_two', $member->profile_color_two) }}" data-background-two></label></div>
+                    <div class="background-preview" data-background-preview><span>Profile background preview</span></div>
+                </div>
+                @else<p class="small muted">Your saved colors will return when Premium is active again.</p><a href="{{ route('premium.index') }}" class="button secondary small">Explore Premium</a>@endif
+            </div>
             <h2>Change password</h2><p class="muted">Leave these fields blank to keep your password. Changing it signs out your other sessions.</p>
             <label class="field">Current password<input type="password" name="current_password" autocomplete="current-password"></label>
             <div class="form-grid">
                 <label class="field">New password<input type="password" name="password" minlength="8" maxlength="128" autocomplete="new-password"><small class="muted">At least 8 characters.</small></label>
                 <label class="field">Confirm new password<input type="password" name="password_confirmation" minlength="8" maxlength="128" autocomplete="new-password"></label>
             </div>
-            <button class="button" type="submit">Save profile</button>
+            <div class="form-actions"><button class="button" type="submit">Save profile</button><a href="{{ route('profiles.show', $member) }}">View your profile ↗</a></div>
         </form>
     </section>
 </div>

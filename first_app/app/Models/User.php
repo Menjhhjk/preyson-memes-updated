@@ -26,6 +26,13 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property bool $is_admin
  * @property string $role
  * @property string|null $avatar_path
+ * @property string|null $description
+ * @property string $profile_visibility
+ * @property bool $email_visible
+ * @property string $profile_background
+ * @property string $profile_color_one
+ * @property string $profile_color_two
+ * @property int|null $pinned_post_id
  * @property Carbon|null $premium_expires_at
  * @property Carbon|null $terms_accepted_at
  * @property string|null $two_factor_secret
@@ -61,6 +68,8 @@ class User extends Authenticatable implements PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean',
+            'email_visible' => 'boolean',
+            'pinned_post_id' => 'integer',
             'premium_expires_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',
@@ -76,6 +85,24 @@ class User extends Authenticatable implements PasskeyUser
     public function isAdmin(): bool
     {
         return $this->is_admin || $this->role === 'admin';
+    }
+
+    public function profileVisibleTo(?User $viewer): bool
+    {
+        return $this->profile_visibility !== 'private' || ($viewer && ($this->is($viewer) || $viewer->canModerate()));
+    }
+
+    public function profileBackground(): ?string
+    {
+        if (! $this->hasPremium() || $this->profile_background === 'default'
+            || ! preg_match('/^#[0-9a-fA-F]{6}$/', $this->profile_color_one)
+            || ! preg_match('/^#[0-9a-fA-F]{6}$/', $this->profile_color_two)) {
+            return null;
+        }
+
+        return $this->profile_background === 'gradient'
+            ? "linear-gradient(135deg, {$this->profile_color_one}, {$this->profile_color_two})"
+            : $this->profile_color_one;
     }
 
     public function canModerate(): bool

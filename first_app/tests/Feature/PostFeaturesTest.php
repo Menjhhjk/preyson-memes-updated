@@ -54,7 +54,7 @@ test('GIF categorization uses actual MIME and preserves filename punctuation', f
     $post = Post::sole();
     expect($post->media_type)->toBe('gif');
     expect($post->title)->toBe('I’m + 100%_happy & café!');
-    Storage::disk('public')->assertExists($post->media_path);
+    Storage::disk('local')->assertExists($post->media_path);
 });
 
 test('explicit titles preserve Unicode punctuation and literal markup safely', function () {
@@ -74,7 +74,7 @@ test('free quota rejects an entire batch when it would exceed six stored posts',
     $this->actingAs($owner)->post(route('posts.store'), ['media' => [featureGif(), featureGif()]])
         ->assertSessionHasErrors('media');
     expect($owner->posts()->count())->toBe(5);
-    expect(Storage::disk('public')->allFiles())->toBe([]);
+    expect(Storage::disk('local')->allFiles())->toBe([]);
 });
 
 test('premium allows thirty posts and rejects the thirty first', function () {
@@ -205,7 +205,7 @@ test('ZIP import verifies content and rolls back every earlier archive entry on 
         'fake.jpg' => '<?php echo "not an image"; ?>',
     ])])->assertSessionHasErrors('media');
     expect(Post::count())->toBe(0);
-    expect(Storage::disk('public')->allFiles())->toBe([]);
+    expect(Storage::disk('local')->allFiles())->toBe([]);
 });
 
 test('ZIP imports use MIME for category and never extract archive paths', function () {
@@ -217,7 +217,7 @@ test('ZIP imports use MIME for category and never extract archive paths', functi
     expect($post->title)->toBe('Punctuation + café!');
     expect($post->media_type)->toBe('gif');
     expect($post->media_path)->toStartWith('memes/')->not->toContain('..');
-    Storage::disk('public')->assertExists($post->media_path);
+    Storage::disk('local')->assertExists($post->media_path);
 });
 
 test('ZIP import limits decompressed size before saving files', function () {
@@ -231,5 +231,5 @@ test('ZIP import limits decompressed size before saving files', function () {
     $this->actingAs($admin)->post(route('posts.zip'), ['media' => UploadedFile::fake()->createWithContent('large.zip', $contents)])
         ->assertSessionHasErrors('media');
     expect(Post::count())->toBe(0);
-    expect(Storage::disk('public')->allFiles())->toBe([]);
+    expect(Storage::disk('local')->allFiles())->toBe([]);
 });

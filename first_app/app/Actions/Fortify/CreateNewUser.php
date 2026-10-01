@@ -2,9 +2,9 @@
 
 namespace App\Actions\Fortify;
 
-use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use App\Rules\RegistrationPassword;
 use App\Services\ColorCaptcha;
 use Illuminate\Contracts\Validation\Validator as ValidatorContract;
 use Illuminate\Support\Facades\Validator;
@@ -13,7 +13,7 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
 {
-    use PasswordValidationRules, ProfileValidationRules;
+    use ProfileValidationRules;
 
     /**
      * Validate and create a newly registered user.
@@ -31,7 +31,7 @@ class CreateNewUser implements CreatesNewUsers
 
         $validator = Validator::make($input, [
             ...$this->profileRules(),
-            'password' => $this->passwordRules(),
+            'password' => ['required', 'string', 'min:'.RegistrationPassword::MIN_LENGTH, new RegistrationPassword, 'confirmed'],
             'password_confirmation' => ['required', 'string'],
             'terms' => ['required', 'accepted'],
         ]);

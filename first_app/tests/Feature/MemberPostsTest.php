@@ -16,7 +16,7 @@ beforeEach(function () {
 function memberPost(?User $owner, string $title = 'Existing meme'): Post
 {
     $path = 'memes/'.uniqid().'.png';
-    Storage::disk('public')->put($path, 'existing media');
+    Storage::disk('local')->put($path, 'existing media');
 
     return Post::create(['user_id' => $owner?->id, 'title' => $title, 'media_path' => $path, 'media_type' => 'image']);
 }
@@ -24,7 +24,7 @@ function memberPost(?User $owner, string $title = 'Existing meme'): Post
 function memberSignupData(TestCase $testCase): array
 {
     return [...solveColorCaptcha($testCase, 'register'), 'terms' => '1', 'username' => 'Jane_Doe', 'email' => 'jane@example.com',
-        'password' => 'test-password', 'password_confirmation' => 'test-password'];
+        'password' => 'Test-password1!', 'password_confirmation' => 'Test-password1!'];
 }
 
 test('registration saves the member profile and never grants admin access', function () {
@@ -34,7 +34,7 @@ test('registration saves the member profile and never grants admin access', func
     $member = User::sole();
     expect($member->username)->toBe('jane_doe');
     expect($member->is_admin)->toBeFalse();
-    expect(Hash::check('test-password', $member->password))->toBeTrue();
+    expect(Hash::check('Test-password1!', $member->password))->toBeTrue();
     $this->assertAuthenticatedAs($member);
 });
 
@@ -63,7 +63,7 @@ test('members can upload six files and each post belongs to them', function () {
         ->assertSessionHasNoErrors()->assertRedirect('/dashboard');
     expect(Post::where('user_id', $member->id)->count())->toBe(6);
     foreach (Post::all() as $post) {
-        Storage::disk('public')->assertExists($post->media_path);
+        Storage::disk('local')->assertExists($post->media_path);
     }
 });
 
@@ -72,7 +72,7 @@ test('more than six files are rejected before any are saved', function () {
     $this->actingAs(User::factory()->create())->post(route('posts.store'), ['media' => $files])
         ->assertSessionHasErrors('media');
     expect(Post::count())->toBe(0);
-    expect(Storage::disk('public')->allFiles())->toBe([]);
+    expect(Storage::disk('local')->allFiles())->toBe([]);
 });
 
 test('members cannot use ZIP imports to bypass the six file limit', function () {
@@ -97,7 +97,7 @@ test('members cannot edit update or delete another member or legacy post', funct
     $this->put(route('posts.update', $post), ['title' => 'Unauthorized change'])->assertForbidden();
     $this->delete(route('posts.batchDelete'), ['post_ids' => [$post->id]])->assertForbidden();
     expect($post->fresh()->title)->toBe('Existing meme');
-    Storage::disk('public')->assertExists($post->media_path);
+    Storage::disk('local')->assertExists($post->media_path);
 })->with(['another member' => 'member', 'legacy' => null]);
 
 test('mixed ownership batch deletion rejects everything', function () {
@@ -106,7 +106,7 @@ test('mixed ownership batch deletion rejects everything', function () {
     $other = memberPost(null);
     $this->actingAs($member)->delete(route('posts.batchDelete'), ['post_ids' => [$own->id, $other->id]])->assertForbidden();
     expect(Post::count())->toBe(2);
-    Storage::disk('public')->assertExists([$own->media_path, $other->media_path]);
+    Storage::disk('local')->assertExists([$own->media_path, $other->media_path]);
 });
 
 test('members can edit replace and delete their own posts', function () {
@@ -118,11 +118,11 @@ test('members can edit replace and delete their own posts', function () {
         ->assertSessionHasNoErrors()->assertRedirect('/dashboard');
     $post->refresh();
     expect($post->title)->toBe('Updated meme');
-    Storage::disk('public')->assertMissing($oldPath);
-    Storage::disk('public')->assertExists($post->media_path);
+    Storage::disk('local')->assertMissing($oldPath);
+    Storage::disk('local')->assertExists($post->media_path);
     $this->delete(route('posts.batchDelete'), ['post_ids' => [$post->id]])->assertRedirect('/dashboard');
     expect(Post::count())->toBe(0);
-    Storage::disk('public')->assertMissing($post->media_path);
+    Storage::disk('local')->assertMissing($post->media_path);
 });
 
 test('an invalid replacement keeps the original media', function () {
@@ -132,7 +132,7 @@ test('an invalid replacement keeps the original media', function () {
         'title' => 'Changed', 'media' => UploadedFile::fake()->create('script.php', 1, 'text/plain'),
     ])->assertSessionHasErrors('media');
     expect($post->fresh()->title)->toBe('Existing meme');
-    Storage::disk('public')->assertExists($post->media_path);
+    Storage::disk('local')->assertExists($post->media_path);
 });
 
 test('admins retain access to member posts and legacy posts', function () {

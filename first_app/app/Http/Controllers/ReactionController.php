@@ -16,6 +16,7 @@ class ReactionController extends Controller
 {
     public function store(Request $request, Post $post): RedirectResponse|JsonResponse
     {
+        abort_unless($post->visibleTo($request->user()), 404);
         $data = $request->validate([
             'emoji' => ['required', 'string', Rule::in([...Reaction::DEFAULT_EMOJIS, ...Reaction::PREMIUM_EMOJIS])],
         ]);

@@ -29,10 +29,9 @@ yarn-error.log
 /.vscode
 /.zed
 
-# Force Git to track uploaded memes and storage directories
-!/storage/app/
-!/storage/app/public/
-!/storage/app/public/**
+# Runtime uploads stay local, including public avatars and legacy media.
+/storage/app/public/*
+!/storage/app/public/.gitignore
 
 # Track database file so cloned repos have your users and meme data
 !/database/database.sqlite

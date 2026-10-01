@@ -7,7 +7,7 @@
     <section class="panel premium-offer">
         <span class="badge">THE FULL MEME EXPERIENCE</span><h2>More room. More reactions.</h2>
         <p class="premium-price">₱0 <small>/ 30 days of pretend luxury</small></p>
-        <ul class="premium-benefits"><li><strong>30 posts</strong><span>Keep up to 30 posts instead of the free limit of 6.</span></li><li><strong>More reactions</strong><span>Choose extra emoji through the More Reaction button.</span></li><li><strong>A little main-character energy</strong><span>Your username gets a moving gradient on your posts.</span></li><li><strong>30 days, then back to free</strong><span>Your existing posts stay. If you are over the free limit, delete posts or reactivate Premium before publishing more.</span></li></ul>
+        <ul class="premium-benefits"><li><strong>30 posts</strong><span>Keep up to 30 posts instead of the free limit of 6.</span></li><li><strong>More reactions</strong><span>Choose extra emoji through the More Reaction button.</span></li><li><strong>A little main-character energy</strong><span>Your username gets a moving gradient on your posts.</span></li><li><strong>A profile with personality</strong><span>Choose a solid background or a two-color gradient for your profile.</span></li><li><strong>30 days, then back to free</strong><span>Your existing posts stay. If you are over the free limit, delete posts or reactivate Premium before publishing more.</span></li></ul>
         @if($member->isAdmin())<p class="muted">Your administrator account already has unlimited posts. Premium still adds the gradient and extra reactions.</p>@endif
         <a class="button" href="#pretend-checkout">{{ $member->hasPremium() ? 'Send imaginary support' : 'Try simulated Premium' }} →</a>
     </section>

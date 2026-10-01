@@ -35,6 +35,8 @@ try {
     & $Php artisan config:clear
     & $Php artisan migrate --force
     if ($LASTEXITCODE -ne 0) { throw 'Database migration failed. Check .env.' }
+    & $Php artisan preyson:protect-media
+    if ($LASTEXITCODE -ne 0) { throw 'Post media could not be protected. Check storage permissions and available space.' }
     if (-not (Test-Path -LiteralPath (Join-Path $projectRoot 'public\storage'))) { & $Php artisan storage:link }
 } finally { Pop-Location }
 if (-not (Test-LocalPort 8000)) {

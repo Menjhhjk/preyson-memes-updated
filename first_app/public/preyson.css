@@ -689,6 +689,49 @@ select.control {
 .post-footer {
     padding: 16px 20px 18px;
 }
+.video-playback {
+    width: 100%;
+    min-width: 0;
+    background: #211827;
+}
+.upload-limit,
+.upload-status {
+    display: block;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+.upload-limit {
+    color: var(--purple);
+}
+.upload-status {
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+.upload-status.is-error {
+    color: #a81f32;
+    font-weight: 650;
+}
+.upload-error-page {
+    max-width: 620px;
+    margin: 10vh auto;
+    padding: 32px;
+}
+.video-help {
+    padding: 10px 14px;
+    color: #f4edf9;
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+.video-help p {
+    margin: 0 0 8px;
+}
+.video-help a {
+    color: #e5c5ff;
+    text-decoration: underline;
+}
+.video-help [hidden] {
+    display: none;
+}
 .reaction-bar {
     display: flex;
     gap: 7px;
@@ -841,7 +884,7 @@ select.control {
     border-radius: 14px;
 }
 .manage-media {
-    height: 180px;
+    min-height: 180px;
     background: #25192f;
     display: grid;
     place-items: center;
@@ -882,6 +925,9 @@ select.control {
 .edit-preview video {
     max-height: 350px;
     border-radius: 12px;
+}
+.edit-preview video {
+    width: 100%;
 }
 .table-wrap {
     overflow-x: auto;
@@ -1123,7 +1169,9 @@ td .button {
     .dashboard-grid {
         gap: 12px;
     }
-    .manage-media,
+    .manage-media {
+        min-height: 145px;
+    }
     .manage-media img,
     .manage-media video {
         height: 145px;

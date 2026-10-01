@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\User;
+use App\Support\PostFiles;
+use App\Support\PostMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,7 @@ class PostController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->validate(['comments_enabled' => ['sometimes', 'boolean']]);
         $uploads = $request->file('media');
         $files = is_array($uploads) ? array_values($uploads) : [$uploads];
         foreach ($files as $upload) {
@@ -39,7 +41,7 @@ class PostController extends Controller
             abort_unless($request->user()->isAdmin(), 403);
         }
 
-        $rules = ['required', 'file', 'max:102400', $isZip ? 'mimes:zip' : 'mimes:jpg,jpeg,png,gif,webp,mp4,webm,mov'];
+        $rules = ['bail', 'required', 'file', 'max:'.PostMedia::MAX_UPLOAD_KB, $isZip ? 'mimes:zip' : PostMedia::validationRule()];
         $request->validate(is_array($uploads) ? [
             'media' => ['required', 'array', 'min:1', 'max:6'],
             'media.*' => $rules,
@@ -47,9 +49,12 @@ class PostController extends Controller
         ] : [
             'media' => $rules,
             'title' => ['nullable', 'string', 'max:255'],
+        ], [
+            'media.max' => is_array($uploads) ? 'Select up to 6 files per upload.' : 'Each file must be 100 MB or smaller. Select a smaller file.',
+            'media.*.max' => 'Each file must be 100 MB or smaller. Select a smaller file.',
         ]);
 
-        if (array_sum(array_map(fn ($file) => $file->getSize(), $files)) > 100 * 1024 * 1024) {
+        if (array_sum(array_map(fn ($file) => $file->getSize(), $files)) > PostMedia::MAX_UPLOAD_BYTES) {
             throw ValidationException::withMessages(['media' => 'The selected files must total 100 MB or less.']);
         }
 
@@ -74,12 +79,13 @@ class PostController extends Controller
                         'title' => $request->filled('title') ? $request->input('title') :
                             $this->filenameTitle($file->getClientOriginalName()),
                         'media_path' => $path,
-                        'media_type' => $this->mediaType($file),
+                        'media_type' => PostMedia::category($file),
+                        'comments_enabled' => $request->boolean('comments_enabled', true),
                     ]);
                 }
             });
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete($paths);
+            PostFiles::delete($paths);
             throw $exception;
         }
 
@@ -91,8 +97,8 @@ class PostController extends Controller
 
         if ($upload instanceof UploadedFile && ! $upload->isValid()) {
             $message = match ($upload->getError()) {
-                UPLOAD_ERR_INI_SIZE => 'The file exceeds the server upload limit of '.ini_get('upload_max_filesize').'.',
-                UPLOAD_ERR_FORM_SIZE => 'The file exceeds the upload form size limit.',
+                UPLOAD_ERR_INI_SIZE => 'The file exceeds the server upload limit of '.ini_get('upload_max_filesize').'. Each file must also be 100 MB or smaller.',
+                UPLOAD_ERR_FORM_SIZE => 'The file exceeds the upload form size limit. Each file must be 100 MB or smaller.',
                 UPLOAD_ERR_PARTIAL => 'The upload was interrupted. Please select the file and try again.',
                 UPLOAD_ERR_NO_TMP_DIR => 'The server upload temporary folder is missing or unavailable. Configure a writable upload_tmp_dir in php.ini and restart PHP.',
                 UPLOAD_ERR_CANT_WRITE => 'The server could not write the uploaded file. Check temporary-folder permissions and available disk space.',
@@ -114,7 +120,7 @@ class PostController extends Controller
         $paths = [];
         $count = 0;
         $bytes = 0;
-        $maxBytes = 100 * 1024 * 1024;
+        $maxBytes = PostMedia::MAX_UPLOAD_BYTES;
 
         try {
             if ($zip->numFiles > 1000) {
@@ -132,7 +138,7 @@ class PostController extends Controller
                         continue;
                     }
 
-                    if (! in_array(strtolower(pathinfo($entryName, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'mov'], true)) {
+                    if (! in_array(strtolower(pathinfo($entryName, PATHINFO_EXTENSION)), PostMedia::extensions(), true)) {
                         continue;
                     }
 
@@ -167,7 +173,7 @@ class PostController extends Controller
                         }
                         $entry = new UploadedFile($temporaryPath, basename($entryName), null, null, true);
                         Validator::make(['media' => $entry], [
-                            'media' => ['required', 'file', 'mimes:jpg,jpeg,png,gif,webp,mp4,webm,mov', 'max:102400'],
+                            'media' => ['bail', 'required', 'file', 'max:'.PostMedia::MAX_UPLOAD_KB, PostMedia::validationRule()],
                         ])->validate();
 
                         $path = $this->storeFile($entry);
@@ -176,7 +182,8 @@ class PostController extends Controller
                             'user_id' => $owner->id,
                             'title' => $this->filenameTitle(basename($entryName)),
                             'media_path' => $path,
-                            'media_type' => $this->mediaType($entry),
+                            'media_type' => PostMedia::category($entry),
+                            'comments_enabled' => $request->boolean('comments_enabled', true),
                         ]);
                         $count++;
                     } finally {
@@ -190,7 +197,7 @@ class PostController extends Controller
                 }
             });
         } catch (\Throwable $exception) {
-            Storage::disk('public')->delete($paths);
+            PostFiles::delete($paths);
             throw $exception;
         } finally {
             $zip->close();
@@ -201,19 +208,12 @@ class PostController extends Controller
 
     private function storeFile(UploadedFile $file): string
     {
-        $path = $file->store('memes', 'public');
+        $path = $file->storeAs('memes', Str::random(40).'.'.PostMedia::extension($file), 'local');
         if ($path === false) {
             throw ValidationException::withMessages(['media' => 'The server could not save the file. Please check storage permissions and disk space.']);
         }
 
         return $path;
-    }
-
-    private function mediaType(UploadedFile $file): string
-    {
-        $mime = $file->getMimeType() ?? '';
-
-        return $mime === 'image/gif' ? 'gif' : (str_starts_with($mime, 'video/') ? 'video' : 'image');
     }
 
     public function edit(Request $request, Post $post): View
@@ -231,7 +231,10 @@ class PostController extends Controller
         $this->checkUpload($request->file('media'));
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
-            'media' => ['nullable', 'file', 'mimes:jpg,jpeg,png,gif,webp,mp4,webm,mov', 'max:102400'],
+            'comments_enabled' => ['sometimes', 'boolean'],
+            'media' => ['bail', 'nullable', 'file', 'max:'.PostMedia::MAX_UPLOAD_KB, PostMedia::validationRule()],
+        ], [
+            'media.max' => 'Each file must be 100 MB or smaller. Select a smaller file.',
         ]);
         unset($data['media']);
         $oldPath = $post->media_path;
@@ -239,20 +242,20 @@ class PostController extends Controller
         if ($request->hasFile('media')) {
             $newPath = $this->storeFile($request->file('media'));
             $data['media_path'] = $newPath;
-            $data['media_type'] = $this->mediaType($request->file('media'));
+            $data['media_type'] = PostMedia::category($request->file('media'));
         }
 
         try {
             $post->update($data);
         } catch (\Throwable $exception) {
             if ($newPath !== null) {
-                Storage::disk('public')->delete($newPath);
+                PostFiles::delete($newPath);
             }
             throw $exception;
         }
 
         if ($newPath !== null) {
-            Storage::disk('public')->delete($oldPath);
+            PostFiles::delete($oldPath);
         }
 
         return $this->redirectAfterChange($request)->with('success', 'Post updated successfully!');
@@ -263,7 +266,7 @@ class PostController extends Controller
         abort_unless($post->canBeManagedBy($request->user()), 403);
         $path = $post->media_path;
         $post->delete();
-        Storage::disk('public')->delete($path);
+        PostFiles::delete($path);
 
         return $this->redirectAfterChange($request)->with('success', 'Post deleted successfully!');
     }
@@ -292,7 +295,7 @@ class PostController extends Controller
                 $post->delete();
             }
         });
-        Storage::disk('public')->delete($posts->pluck('media_path')->all());
+        PostFiles::delete($posts->pluck('media_path')->all());
 
         return $this->redirectAfterChange($request)->with('success', count($posts).' meme(s) deleted successfully!');
     }

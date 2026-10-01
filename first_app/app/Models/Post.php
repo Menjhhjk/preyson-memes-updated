@@ -2,13 +2,41 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Post extends Model
 {
-    protected $fillable = ['user_id', 'title', 'media_path', 'media_type'];
+    protected $fillable = ['user_id', 'title', 'media_path', 'media_type', 'comments_enabled'];
+
+    protected function casts(): array
+    {
+        return ['comments_enabled' => 'boolean'];
+    }
+
+    /** @return HasMany<Comment, $this> */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
+    }
+
+    public function visibleTo(?User $viewer): bool
+    {
+        return $this->user === null || $this->user->profileVisibleTo($viewer);
+    }
+
+    /** @param Builder<Post> $query */
+    public function scopeVisibleTo(Builder $query, ?User $viewer): void
+    {
+        if ($viewer?->canModerate()) {
+            return;
+        }
+        $query->where(fn ($query) => $query->whereNull('user_id')
+            ->orWhereHas('user', fn ($owner) => $owner->where('profile_visibility', 'public'))
+            ->when($viewer, fn ($query) => $query->orWhere('user_id', $viewer->id)));
+    }
 
     /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo

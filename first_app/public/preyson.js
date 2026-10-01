@@ -1,5 +1,20 @@
 (() => {
     const videos = [...document.querySelectorAll('video')];
+    videos.forEach((video) => {
+        const feedback = video
+            .closest('[data-video-playback]')
+            ?.querySelector('[data-video-error]');
+        if (!feedback) return;
+        const showPlaybackError = () => {
+            feedback.hidden = false;
+        };
+        video.addEventListener('error', showPlaybackError);
+        video.addEventListener('loadeddata', () => {
+            feedback.hidden = true;
+        });
+        // A cached response can fail before this script runs.
+        if (video.error) showPlaybackError();
+    });
     if ('IntersectionObserver' in window) {
         const observer = new IntersectionObserver(
             (entries) => {

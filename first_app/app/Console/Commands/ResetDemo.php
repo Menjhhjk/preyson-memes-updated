@@ -4,10 +4,10 @@ namespace App\Console\Commands;
 
 use App\Models\Post;
 use App\Models\User;
+use App\Support\PostFiles;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 
 class ResetDemo extends Command
 {
@@ -33,7 +33,7 @@ class ResetDemo extends Command
             $paths = array_merge($paths, User::query()->whereNotNull('avatar_path')->pluck('avatar_path')->all());
             Post::query()->delete();
             User::query()->when($admin->exists, fn ($query) => $query->where('id', '!=', $admin->id))->delete();
-            foreach (['sessions', 'password_reset_tokens', 'cache', 'cache_locks'] as $table) {
+            foreach (['reports', 'sessions', 'password_reset_tokens', 'cache', 'cache_locks'] as $table) {
                 DB::table($table)->delete();
             }
             $admin->forceFill([
@@ -41,12 +41,15 @@ class ResetDemo extends Command
                 'password' => 'pass@123', 'is_admin' => true, 'role' => 'admin', 'avatar_path' => null,
                 'premium_expires_at' => null, 'remember_token' => null, 'two_factor_secret' => null,
                 'two_factor_recovery_codes' => null, 'two_factor_confirmed_at' => null,
+                'description' => null, 'profile_visibility' => 'public', 'email_visible' => false,
+                'profile_background' => 'default', 'profile_color_one' => '#f8f6fa', 'profile_color_two' => '#e9dcfa',
+                'pinned_post_id' => null,
             ])->save();
             $admin->passkeys()->delete();
 
             return $paths;
         });
-        Storage::disk('public')->delete($paths);
+        PostFiles::delete($paths);
         $admin = User::query()->where('email', 'admin@gmail.com')->sole();
         if (User::query()->count() !== 1 || Post::query()->exists() || ! Hash::check('pass@123', $admin->password) || ! $admin->isAdmin()) {
             $this->error('Demo reset verification failed.');
