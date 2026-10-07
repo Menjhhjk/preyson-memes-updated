@@ -3,6 +3,17 @@
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+// Hosted MySQL (e.g. Aiven) supplies a CA certificate for TLS. Accept either an
+// absolute path or a path relative to the project so .env stays shareable.
+$mysqlSslCa = env('MYSQL_ATTR_SSL_CA');
+if (is_string($mysqlSslCa) && $mysqlSslCa !== '' && ! preg_match('#^(?:[A-Za-z]:[\\\\/]|/)#', $mysqlSslCa)) {
+    $mysqlSslCa = base_path($mysqlSslCa);
+}
+
+$mysqlOptions = extension_loaded('pdo_mysql') ? array_filter([
+    Mysql::ATTR_SSL_CA => $mysqlSslCa ?: null,
+]) : [];
+
 return [
 
     /*
@@ -59,9 +70,7 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            'options' => $mysqlOptions,
         ],
 
         'mariadb' => [
@@ -79,9 +88,7 @@ return [
             'prefix_indexes' => true,
             'strict' => true,
             'engine' => null,
-            'options' => extension_loaded('pdo_mysql') ? array_filter([
-                Mysql::ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-            ]) : [],
+            'options' => $mysqlOptions,
         ],
 
         'pgsql' => [

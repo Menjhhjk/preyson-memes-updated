@@ -1,5 +1,26 @@
 <?php
 
+/*
+| STORAGE_DRIVER=local keeps media on this computer (storage/app/*).
+| STORAGE_DRIVER=s3 moves both media disks to Cloudflare R2 buckets:
+|   local  -> R2_MEDIA_BUCKET (private post media, served via signed URLs)
+|   public -> R2_AVATARS_BUCKET (public avatars)
+| R2 accepts the S3 ACL header only with the value "private", so both
+| disks must stay private; avatar visibility comes from bucket settings.
+*/
+$useS3 = env('STORAGE_DRIVER', 'local') === 's3';
+
+$s3Base = [
+    'driver' => 's3',
+    'key' => env('AWS_ACCESS_KEY_ID'),
+    'secret' => env('AWS_SECRET_ACCESS_KEY'),
+    'region' => env('AWS_DEFAULT_REGION', 'auto'),
+    'endpoint' => env('AWS_ENDPOINT'),
+    'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', true),
+    'throw' => false,
+    'report' => false,
+];
+
 return [
 
     /*
@@ -30,7 +51,10 @@ return [
 
     'disks' => [
 
-        'local' => [
+        'local' => $useS3 ? array_merge($s3Base, [
+            'bucket' => env('R2_MEDIA_BUCKET'),
+            'visibility' => 'private',
+        ]) : [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
@@ -38,7 +62,11 @@ return [
             'report' => false,
         ],
 
-        'public' => [
+        'public' => $useS3 ? array_merge($s3Base, [
+            'bucket' => env('R2_AVATARS_BUCKET'),
+            'url' => env('R2_AVATARS_URL'),
+            'visibility' => 'private',
+        ]) : [
             'driver' => 'local',
             'root' => storage_path('app/public'),
             'url' => rtrim((string) env('APP_URL', 'http://localhost'), '/').'/storage',
@@ -47,18 +75,10 @@ return [
             'report' => false,
         ],
 
-        's3' => [
-            'driver' => 's3',
-            'key' => env('AWS_ACCESS_KEY_ID'),
-            'secret' => env('AWS_SECRET_ACCESS_KEY'),
-            'region' => env('AWS_DEFAULT_REGION'),
+        's3' => array_merge($s3Base, [
             'bucket' => env('AWS_BUCKET'),
             'url' => env('AWS_URL'),
-            'endpoint' => env('AWS_ENDPOINT'),
-            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
-        ],
+        ]),
 
     ],
 

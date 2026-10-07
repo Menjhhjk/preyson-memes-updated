@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -21,7 +22,6 @@ class PostFiles
         if (! $public->exists($path)) {
             return;
         }
-        $source = $public->path($path);
         if (! $private->exists($path)) {
             $stream = $public->readStream($path);
             if (! is_resource($stream)) {
@@ -35,13 +35,30 @@ class PostFiles
                 fclose($stream);
             }
         }
-        $sourceHash = hash_file('sha256', $source);
-        $destinationHash = hash_file('sha256', $private->path($path));
+        $sourceHash = self::hash($public, $path);
+        $destinationHash = self::hash($private, $path);
         if ($sourceHash === false || $destinationHash === false || ! hash_equals($sourceHash, $destinationHash)) {
             throw new RuntimeException('Media verification failed. The original file has been preserved.');
         }
         if (! $public->delete($path)) {
             throw new RuntimeException('Unable to remove the public media copy. Profile privacy was not changed.');
+        }
+    }
+
+    /** Hash a stored file without assuming a local filesystem path (S3/R2 safe). */
+    private static function hash(Filesystem $disk, string $path): string|false
+    {
+        $stream = $disk->readStream($path);
+        if (! is_resource($stream)) {
+            return false;
+        }
+        try {
+            $context = hash_init('sha256');
+            hash_update_stream($context, $stream);
+
+            return hash_final($context);
+        } finally {
+            fclose($stream);
         }
     }
 }

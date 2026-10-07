@@ -2,6 +2,16 @@
 
 Local meme community demo built with Laravel 13, PHP 8.4, and MySQL 8.
 
+## Centralized setup (shared hosted MySQL + Cloudflare R2)
+
+The team can share one database and one media store instead of keeping different copies on every computer:
+
+- **Database**: set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `DB_DATABASE` in `.env` to one hosted MySQL instance (the demo uses Aiven's free MySQL tier — no credit card). Set `MYSQL_ATTR_SSL_CA` to the CA certificate downloaded from the provider console; a project-relative path such as `certs/aiven-mysql-ca.pem` works. When `DB_HOST` is not local, `Start-PreySON.ps1` skips the bundled MySQL 3308 instance and phpMyAdmin entirely.
+- **Media**: set `STORAGE_DRIVER=s3` plus the `AWS_*`/`R2_*` variables in `.env` (Cloudflare R2 S3 credentials, account endpoint, one private `R2_MEDIA_BUCKET` for post files, one public `R2_AVATARS_BUCKET` for avatars with its `R2_AVATARS_URL`). The existing `local`/`public` disk names are kept, so application code and tests are unchanged; post media stays private and is streamed by R2 through short-lived signed URLs issued only after the app authorizes the viewer. `php scripts/sync-media-to-r2.php` copies existing local uploads into the buckets (repeatable — files already present with the same size are skipped).
+- **Tests never touch shared resources**: `phpunit.xml` pins `STORAGE_DRIVER=local` and uses in-memory SQLite, so `php artisan test` cannot write to R2 or the hosted database.
+
+Rules for the shared database: everyone's posts live in it, so **never run `preyson:reset-demo` against it** (it deletes every post, comment, report, and account), and only run migrations you intend the whole team to share.
+
 ## Run on this computer
 
 From `first_app`, run:
@@ -10,7 +20,7 @@ From `first_app`, run:
 .\Start-PreySON.cmd
 ```
 
-This starts three local services in hidden windows when they are not already running:
+The launcher prefers Herd's PHP 8.4, falls back to `php` on PATH, and starts three local services in hidden windows when they are not already running (hosted configurations skip the local database services):
 
 | Service                      | Address                                    |
 | ---------------------------- | ------------------------------------------ |

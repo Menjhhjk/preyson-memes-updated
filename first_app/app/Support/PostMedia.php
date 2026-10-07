@@ -91,13 +91,15 @@ class PostMedia implements ValidationRule
 
     private static function mimeType(UploadedFile $file): string
     {
-        $mime = $file->getMimeType() ?? '';
-        // Some PHP Fileinfo versions report MPEG transport streams as generic
-        // binary data. Require actual packet framing, never accept all binaries.
-        if ($mime === 'application/octet-stream'
-            && in_array(strtolower($file->getClientOriginalExtension()), ['ts', 'mts', 'm2ts'], true)
-            && self::hasTransportPackets($file)) {
-            return 'video/mp2t';
+        // MIME tokens are case-insensitive and Fileinfo casing varies by PHP
+        // version (PHP 8.5 reports video/MP2T). Normalize before map lookups.
+        $mime = strtolower($file->getMimeType() ?? '');
+
+        // Fileinfo may label any 0x47-prefixed payload (including junk) as a
+        // transport stream, so .ts/.mts/.m2ts uploads must always pass the
+        // bounded packet-framing check below instead of trusting the type.
+        if (in_array(strtolower($file->getClientOriginalExtension()), ['ts', 'mts', 'm2ts'], true)) {
+            return self::hasTransportPackets($file) ? 'video/mp2t' : 'application/octet-stream';
         }
 
         return $mime;
