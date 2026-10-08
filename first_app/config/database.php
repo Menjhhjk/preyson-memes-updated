@@ -12,6 +12,7 @@ if (is_string($mysqlSslCa) && $mysqlSslCa !== '' && ! preg_match('#^(?:[A-Za-z]:
 
 $mysqlOptions = extension_loaded('pdo_mysql') ? array_filter([
     Mysql::ATTR_SSL_CA => $mysqlSslCa ?: null,
+    Mysql::ATTR_SSL_VERIFY_SERVER_CERT => $mysqlSslCa ? true : null,
 ]) : [];
 
 return [

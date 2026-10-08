@@ -13,7 +13,13 @@ class Post extends Model
 
     protected function casts(): array
     {
-        return ['comments_enabled' => 'boolean'];
+        return ['comments_enabled' => 'boolean', 'ten_reactions_notified_at' => 'datetime'];
+    }
+
+    /** @return BelongsTo<Comment, $this> */
+    public function pinnedComment(): BelongsTo
+    {
+        return $this->belongsTo(Comment::class, 'pinned_comment_id');
     }
 
     /** @return HasMany<Comment, $this> */

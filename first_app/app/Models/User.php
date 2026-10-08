@@ -33,6 +33,9 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property string $profile_color_one
  * @property string $profile_color_two
  * @property int|null $pinned_post_id
+ * @property int $bonus_super_reactions
+ * @property int $bonus_boosts
+ * @property Carbon|null $corner_unlocked_at
  * @property Carbon|null $premium_expires_at
  * @property Carbon|null $terms_accepted_at
  * @property string|null $two_factor_secret
@@ -52,6 +55,8 @@ class User extends Authenticatable implements PasskeyUser
     // Fortify/passkeys and the retained security screens expect a display name.
     protected $appends = ['name'];
 
+    protected $attributes = ['bonus_super_reactions' => 0, 'bonus_boosts' => 0];
+
     public function getNameAttribute(): string
     {
         return $this->username ?? 'Member';
@@ -70,6 +75,9 @@ class User extends Authenticatable implements PasskeyUser
             'is_admin' => 'boolean',
             'email_visible' => 'boolean',
             'pinned_post_id' => 'integer',
+            'bonus_super_reactions' => 'integer',
+            'bonus_boosts' => 'integer',
+            'corner_unlocked_at' => 'datetime',
             'premium_expires_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'two_factor_confirmed_at' => 'datetime',

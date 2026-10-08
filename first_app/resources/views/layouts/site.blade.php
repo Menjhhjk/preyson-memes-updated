@@ -8,6 +8,8 @@
     <link rel="icon" href="{{ asset('logo.png') }}">
     <link rel="stylesheet" href="{{ asset('preyson.css') }}">
     <link rel="stylesheet" href="{{ asset('community.css') }}">
+    <link rel="stylesheet" href="{{ asset('engagement.css') }}">
+    <script type="module" src="{{ asset('engagement.js') }}"></script>
     <script src="{{ asset('preyson.js') }}" defer></script>
     <script type="module" src="{{ asset('community.js') }}"></script>
     <script type="module" src="{{ asset('upload-limits.js') }}"></script>
@@ -23,6 +25,8 @@
         <nav class="side-nav">
             <a href="{{ route('home') }}" @class(['active' => request()->routeIs('home')])><span aria-hidden="true">▦</span> Posts</a>
             @auth
+                <a href="{{ route('notifications.index') }}" @class(['active' => request()->routeIs('notifications.*', 'warnings.mine')])><span aria-hidden="true">&#9679;</span> Notifications <span class="notification-count" data-notification-count data-count-url="{{ route('notifications.count') }}" @if(!$unreadNotifications) hidden @endif>{{ $unreadNotifications }}</span></a>
+                <a href="{{ route('rewards.index') }}" @class(['active' => request()->routeIs('rewards.*')])><span aria-hidden="true">&#10022;</span> Rewards & charges</a>
                 <a href="{{ route('dashboard') }}" @class(['active' => request()->routeIs('dashboard', 'posts.edit')])><span aria-hidden="true">＋</span> {{ auth()->user()->canModerate() ? 'Manage posts' : 'My posts' }}</a>
                 <a href="{{ route('profiles.show', auth()->user()) }}" @class(['active' => request()->routeIs('profile.*') || (request()->routeIs('profiles.show') && request()->route('member')?->id === auth()->id())])><span aria-hidden="true">◎</span> My profile</a>
             @endauth
@@ -32,6 +36,8 @@
             @endif
             @if(auth()->check() && auth()->user()->isAdmin())
                 <span class="nav-caption">ADMINISTRATION</span>
+                <a href="{{ route('corners.review') }}" @class(['active' => request()->routeIs('corners.*')])>Corner requests</a>
+                <a href="{{ route('super-catalog.index') }}" @class(['active' => request()->routeIs('super-catalog.*')])>Super-reaction library</a>
                 <a href="{{ route('accounts.index') }}" @class(['active' => request()->routeIs('accounts.*')])><span aria-hidden="true">♙</span> Account management</a>
             @endif
         </nav>
@@ -58,6 +64,7 @@
         <footer class="site-footer">Made for a laugh. <span>PreySON © {{ date('Y') }}</span></footer>
     </div>
 </div>
+@auth @include('partials.power-overlay') @endauth
 @stack('scripts')
 </body>
 </html>

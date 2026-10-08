@@ -11,7 +11,9 @@
         "types:check": "tsc --noEmit",
         "test:uploads": "node --test tests/JavaScript/upload-limits.test.mjs",
         "test:registration": "node --test tests/JavaScript/registration.test.mjs",
-        "test:community": "node --test tests/JavaScript/community.test.mjs"
+        "test:community": "node --test tests/JavaScript/community.test.mjs",
+        "test": "node --test tests/JavaScript/*.test.mjs",
+        "test:engagement": "node --test tests/JavaScript/engagement.test.mjs"
     },
     "dependencies": {
         "@inertiajs/react": "^3.0.0",

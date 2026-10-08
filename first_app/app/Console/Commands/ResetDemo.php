@@ -17,7 +17,9 @@ class ResetDemo extends Command
 
     public function handle(): int
     {
-        if (app()->isProduction()) {
+        $connection = config('database.default');
+        $host = config('database.connections.'.$connection.'.host');
+        if (app()->isProduction() || ($connection !== 'sqlite' && ! in_array($host, ['127.0.0.1', 'localhost', '::1'], true))) {
             $this->error('This command is only available for the local demo.');
 
             return self::FAILURE;
@@ -33,7 +35,7 @@ class ResetDemo extends Command
             $paths = array_merge($paths, User::query()->whereNotNull('avatar_path')->pluck('avatar_path')->all());
             Post::query()->delete();
             User::query()->when($admin->exists, fn ($query) => $query->where('id', '!=', $admin->id))->delete();
-            foreach (['reports', 'sessions', 'password_reset_tokens', 'cache', 'cache_locks'] as $table) {
+            foreach (['reports', 'member_notifications', 'member_warnings', 'posting_days', 'post_power_uses', 'corner_requests', 'sessions', 'password_reset_tokens', 'cache', 'cache_locks'] as $table) {
                 DB::table($table)->delete();
             }
             $admin->forceFill([
@@ -44,6 +46,7 @@ class ResetDemo extends Command
                 'description' => null, 'profile_visibility' => 'public', 'email_visible' => false,
                 'profile_background' => 'default', 'profile_color_one' => '#f8f6fa', 'profile_color_two' => '#e9dcfa',
                 'pinned_post_id' => null,
+                'bonus_super_reactions' => 0, 'bonus_boosts' => 0, 'corner_unlocked_at' => null,
             ])->save();
             $admin->passkeys()->delete();
 

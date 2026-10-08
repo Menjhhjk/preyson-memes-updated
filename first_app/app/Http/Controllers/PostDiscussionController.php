@@ -18,7 +18,12 @@ class PostDiscussionController extends Controller
         $request->validate(['page' => ['nullable', 'integer', 'min:1', 'max:1000000']]);
         $post->loadCount(['comments', 'reactions'])->load(['reactions' => fn ($query) => $query->where('user_id', $request->user()->id ?? 0)]);
         $canReadComments = $post->comments_enabled || ($request->user() && $post->canBeManagedBy($request->user()));
-        $comments = $canReadComments ? $post->comments()->with('user')->oldest()->orderBy('id')->paginate(20)->fragment('comments') : null;
+        $comments = $canReadComments ? $post->comments()->whereNull('parent_id')->with(['user',
+            'replies' => fn ($query) => $query->with(['user', 'replyTo.user'])->oldest('id')->limit(3),
+        ])->withCount('replies')->oldest()->orderBy('id')->paginate(20)->fragment('comments') : null;
+        if ($canReadComments) {
+            $post->load('pinnedComment.user');
+        }
         $counts = $post->reactions()->select('emoji')->selectRaw('COUNT(*) AS total')->groupBy('emoji')->pluck('total', 'emoji')->all();
 
         return view('posts.show', [

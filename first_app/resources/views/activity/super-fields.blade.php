@@ -1,0 +1,4 @@
+<label class="field">Name<input name="name" maxlength="60" required value="{{ $type?->name ?? old('name') }}"></label>
+<label class="field">{{ $type ? 'Replace GIF (optional)' : 'Reaction GIF' }}<input type="file" name="gif" accept="image/gif,.gif" @required(!$type)><small class="muted">GIF only · up to 5 MB · at most 1500 × 1500 pixels. Avoid flashing effects.</small></label>
+<label class="field">{{ $type ? 'Replace sound (optional)' : 'Reaction sound' }}<input type="file" name="sound" accept="audio/mpeg,audio/wav,audio/ogg,.mp3,.wav,.ogg" @required(!$type)><small class="muted">MP3, WAV, or OGG · up to 3 MB. A short, gentle sound works best.</small></label>
+<input type="hidden" name="is_active" value="0"><label class="community-check"><input type="checkbox" name="is_active" value="1" @checked($type?->is_active ?? true)> Available to members</label>

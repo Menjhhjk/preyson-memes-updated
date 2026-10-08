@@ -1,0 +1,8 @@
+@extends('layouts.site')
+@section('title', 'Moderation messages')
+@section('content')
+<div class="page-heading"><div><span class="eyebrow">KEEPING THE COMMUNITY WELCOMING</span><h1>{{ $staffView ? 'Warnings for '.$member->username : 'Moderation messages' }}</h1><p>These messages are private to the member and moderation staff.</p></div><a class="button secondary" href="{{ $staffView ? route('profiles.show', $member) : route('notifications.index') }}">← Back</a></div>
+@if($staffView)<section class="panel"><h2>Send a warning</h2><form method="POST" action="{{ route('warnings.store', $member) }}" data-confirm="Send this moderation warning to {{ $member->username }}?">@csrf<label class="field">Message to the member<textarea name="message" rows="5" maxlength="2000" required placeholder="Explain the concern and how the member can address it.">{{ old('message') }}</textarea></label><p class="small muted">The member will receive this exact message as a notification. A warning does not automatically restrict their account.</p><button class="button" type="submit">Send warning</button></form></section>@endif
+@forelse($warnings as $warning)<article class="panel warning-entry"><span class="badge">Moderation warning</span><p class="plain-text">{{ $warning->message }}</p><p class="small muted">From {{ $warning->issuer?->username ?? 'Former moderator' }} · {{ $warning->created_at->timezone(config('engagement.timezone'))->format('M j, Y · g:i a') }} PHT</p></article>@empty<div class="panel empty-state"><p>No moderation messages.</p></div>@endforelse
+@include('partials.pagination', ['items' => $warnings])
+@endsection

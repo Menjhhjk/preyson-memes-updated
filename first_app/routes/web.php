@@ -29,4 +29,5 @@ require __DIR__.'/auth-extras.php';
 require __DIR__.'/posts-extras.php';
 require __DIR__.'/accounts.php';
 require __DIR__.'/community.php';
+require __DIR__.'/activity.php';
 require __DIR__.'/settings.php';

@@ -5,7 +5,8 @@
 <div class="discussion-layout">
 <div>@include('partials.post-card')</div>
 <section class="panel discussion-panel" id="comments" aria-labelledby="comments-heading">
-    <div class="section-heading"><h2 id="comments-heading">Comments</h2>@if($comments)<span class="badge">{{ $comments->total() }}</span>@endif</div>
+    <div class="section-heading"><h2 id="comments-heading">Comments</h2>@if($comments)<span class="badge">{{ $post->comments_count }}</span>@endif</div>
+    @if($comments && $post->pinnedComment)@include('partials.pinned-comment')@endif
     @if(!$post->comments_enabled)
         <div class="notice">The owner has turned comments off.@if($comments) <span class="small">As the owner or a moderator, you can still review and remove existing comments below.</span>@endif</div>
     @else
@@ -21,19 +22,13 @@
     @if($comments)
     <div class="comment-list">
         @forelse($comments as $comment)
-        <article class="comment" id="comment-{{ $comment->id }}">
-            <header class="comment-heading"><a href="{{ route('profiles.show', $comment->user) }}"><img class="avatar" src="{{ $comment->user->avatarUrl() }}" alt="{{ $comment->user->username }}"></a><div><div class="comment-author"><a href="{{ route('profiles.show', $comment->user) }}" @class(['premium-owner' => $comment->user->hasPremium()])>{{ $comment->user->username }}</a>@if($comment->user->hasPremium())<span class="badge premium comment-premium" role="img" aria-label="Premium member" title="Premium member">✦</span>@endif @if($comment->user_id === $post->user_id)<span class="badge author-badge">Post owner</span>@endif</div><time class="small muted" datetime="{{ $comment->created_at->toIso8601String() }}">{{ $comment->created_at->format('M j, Y · g:i a') }} UTC</time>@if($comment->edited_at)<small class="muted"> · edited</small>@endif</div></header>
-            <p class="plain-text comment-body">{{ $comment->body }}</p>
-            @auth
-            <div class="comment-actions">
-                <a class="report-link" href="{{ route('reports.create', ['type' => 'comment', 'id' => $comment->id]) }}">⚑ Report</a>
-                @if($comment->canBeDeletedBy(auth()->user()))<form method="POST" action="{{ route('comments.destroy', $comment) }}" data-confirm="Delete this comment? This cannot be undone.">@csrf @method('DELETE')<button type="submit" class="text-button danger-text">Delete</button></form>@endif
-            </div>
-            @if($post->comments_enabled && $comment->user_id === auth()->id())
-                <details class="comment-edit"><summary>Edit comment</summary><form method="POST" action="{{ route('comments.update', $comment) }}">@csrf @method('PATCH')<label class="field">Your comment<textarea name="body" rows="3" required maxlength="2000">{{ $comment->body }}</textarea></label><button class="button secondary small" type="submit">Save comment</button></form></details>
-            @endif
-            @endauth
-        </article>
+        @include('partials.comment')
+        @if($comment->replies_count > 0)
+        <div class="comment-replies" aria-label="Replies to {{ $comment->user->username }}">
+            @foreach($comment->replies as $reply)@include('partials.comment', ['comment' => $reply])@endforeach
+            <a class="thread-link" href="{{ route('comments.replies', $comment) }}">View all {{ $comment->replies_count }} {{ Str::plural('reply', $comment->replies_count) }} &rarr;</a>
+        </div>
+        @endif
         @empty
         <div class="empty-state compact-empty"><p>No comments yet. A good conversation starts somewhere.</p></div>
         @endforelse

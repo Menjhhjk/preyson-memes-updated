@@ -10,7 +10,9 @@ The team can share one database and one media store instead of keeping different
 - **Media**: set `STORAGE_DRIVER=s3` plus the `AWS_*`/`R2_*` variables in `.env` (Cloudflare R2 S3 credentials, account endpoint, one private `R2_MEDIA_BUCKET` for post files, one public `R2_AVATARS_BUCKET` for avatars with its `R2_AVATARS_URL`). The existing `local`/`public` disk names are kept, so application code and tests are unchanged; post media stays private and is streamed by R2 through short-lived signed URLs issued only after the app authorizes the viewer. `php scripts/sync-media-to-r2.php` copies existing local uploads into the buckets (repeatable — files already present with the same size are skipped).
 - **Tests never touch shared resources**: `phpunit.xml` pins `STORAGE_DRIVER=local` and uses in-memory SQLite, so `php artisan test` cannot write to R2 or the hosted database.
 
-Rules for the shared database: everyone's posts live in it, so **never run `preyson:reset-demo` against it** (it deletes every post, comment, report, and account), and only run migrations you intend the whole team to share.
+Rules for the shared database: everyone's posts live in it, so only run migrations you intend the whole team to share. `preyson:reset-demo` refuses remote database hosts even when `APP_ENV=local`. TLS connections verify the server certificate against the configured CA. Keep `.env`, database dumps, and cloud credentials out of Git.
+
+For an existing hosted database, install dependencies with `composer install`, provide your local `.env` and CA certificate, then run `php artisan migrate --force` or `Start-PreySON.cmd`. Keep the shared `APP_KEY` when moving this existing installation; do not run `composer setup` against it because that command generates a new key. The committed `public/build` and demo reaction assets let a clone run without Node; install Node dependencies only when rebuilding frontend assets.
 
 ## Run on this computer
 
@@ -56,6 +58,20 @@ The original SQLite data was cleared too. It contains only the preserved adminis
 - One reaction per account/post; click again to remove it, or another emoji to change it. Videos pause when less than 25% visible, when another video starts, or when the page is hidden.
 - Supporting protections include CSRF, login throttling, case-insensitive account uniqueness, password hashing, revoked sessions after credential/role changes, media cleanup, bounded MIME-checked ZIP imports, upload rollback, and server-enforced roles/quotas.
 
+## Notifications, rewards, and post powers
+
+The **Notifications** menu includes each post's first ten-reaction milestone, comments/replies, owner hearts/pins, Boosts, Super-reactions, earned rewards, Corner decisions, and private moderator warnings. The unread badge refreshes every 40 seconds while the page is visible. Members can filter unread updates and mark them read. Notifications recheck content visibility when opened. Staff send warnings from a member's profile; moderators can warn ordinary members, while administrators can also warn other staff. Warnings do not automatically suspend accounts.
+
+**Rewards & charges** tracks 14 distinct publishing days in `Asia/Manila`, with no consecutive-day requirement. Progress begins with new uploads after this feature is installed; existing posts and edits do not count. A successful batch/ZIP import counts once per date, deleting a post preserves progress, and each account completes the track once. The schedule is in `config/engagement.php`: bonus charges on most days, 3 Premium days on day 4, 7 on days 7 and 12, and Corner-request permission on day 14. Reward Premium extends an active expiry. Administrators review Corner requests from the sidebar; actual Corner pages remain a future feature.
+
+Super-reactions and Boosts each have a separate allowance: **Free gets 3 at midnight on the first of every month; Premium gets 5 at midnight every Monday, Philippine time**. Unused allowance does not roll over. Reward charges remain until spent, after the calendar allowance. Refreshes are calculated when needed, so no scheduler or queue worker is required. Switching membership counts usage within the new calendar period instead of granting a fresh allowance on every switch. Deleted posts do not refund charges. Confirmation, account locks, and idempotent request keys prevent accidental double spending.
+
+Each Boost adds one extra appearance of the post in the default shuffled feed for exactly 24 hours. Multiple boosts stack; explicit sorting and profile pages show one copy. Visibility and search/media filters still apply. Super-reactions display a large GIF with its sound and a moving entrance; Boosts use a rocket celebration. Both support Escape/close, sound mute, and reduced motion. Browser autoplay restrictions show a Play sound button.
+
+Administrators can add, rename, deactivate, or replace GIF/sound pairs in **Super-reaction library**. The three bundled geometric GIFs and four synthesized sounds are original, replaceable demos in `public/super-reactions/demo`. Uploaded assets use the public disk (the public R2 bucket in hosted mode). GIFs are limited to 5 MB and 1500 × 1500; MP3/WAV/OGG sounds to 3 MB. Previous asset files remain available for existing reaction receipts. The optional `scripts/generate-super-demos.mjs` recreates the bundled assets; it documents its development-only encoder dependency.
+
+Comments now support replies, with three preview replies and paginated full threads. Replying to a reply stays in the same thread and identifies its recipient. Post owners can heart comments and pin one comment/reply above the discussion. Deleting a root comment also deletes its replies; deleting a pinned comment clears the pin. Closing a discussion also closes replies.
+
 ## Video uploads
 
 New uploads, post replacements (including inline edits), and admin ZIP imports accept **MP4, WebM, MOV, MKV, FLV, AVI, M4V, MPEG/MPG, TS/MTS/M2TS, WMV, and OGV**. Hybrid and fragmented MP4/MOV recordings use their usual `.mp4` or `.mov` extension. The existing limits still apply: up to six files per upload, totaling 100 MB.
@@ -68,7 +84,7 @@ Uploading a recording does not convert its format or codec. Browser playback sup
 
 ## Reset the demo
 
-This deliberately removes all posts, comments, reactions, reports, other accounts, and their media, and restores the documented administrator login and profile defaults. It preserves the main admin's existing ID where possible and refuses to run in production:
+This deliberately removes all posts, comments, reactions, reports, other accounts, and their media, and restores the documented administrator login and profile defaults. It preserves the main admin's existing ID where possible and refuses to run in production or against remote database hosts. It also clears rewards, notifications, warnings, Corner requests, and spent charges:
 
 ```powershell
 & "$env:USERPROFILE\.config\herd\bin\php84\php.exe" artisan preyson:reset-demo --force
@@ -106,6 +122,7 @@ npm run types:check
 npm run test:uploads
 npm run test:registration
 npm run test:community
+npm run test:engagement
 npm run build
 php scripts/verify-database.php
 ```

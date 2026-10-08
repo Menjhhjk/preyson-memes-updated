@@ -9,7 +9,8 @@
         <p class="small muted">Joined {{ $member->created_at->format('F Y') }}@if($member->email_visible)<span class="profile-email"> · {{ $member->email }}</span>@endif</p>
     @endif
     </div>
-    <div class="profile-actions">@if(auth()->id() === $member->id)<a class="button secondary" href="{{ route('profile.edit') }}">Edit profile</a>@endif @auth<a class="report-link" href="{{ route('reports.create', ['type' => 'account', 'id' => $member->id]) }}">⚑ Report account</a>@endauth</div>
+    <div class="profile-actions">@if(auth()->check() && !auth()->user()->is($member) && (auth()->user()->isAdmin() || (auth()->user()->canModerate() && !$member->canModerate())))<a class="button secondary small" href="{{ route('warnings.create', $member) }}">Moderation warnings</a>@endif
+@if(auth()->id() === $member->id)<a class="button secondary" href="{{ route('profile.edit') }}">Edit profile</a>@endif @auth<a class="report-link" href="{{ route('reports.create', ['type' => 'account', 'id' => $member->id]) }}">⚑ Report account</a>@endauth</div>
 </div>
 @if($visible)
     @if($member->profile_visibility === 'private')<div class="notice">This profile and its posts are private. Only the owner and moderation team can view them.</div>@endif

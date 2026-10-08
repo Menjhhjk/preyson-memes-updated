@@ -7,6 +7,7 @@
 /storage/*.key
 /storage/pail
 /storage/mysql
+/storage/framework/asset-tools
 /resources/js/actions
 /resources/js/routes
 /resources/js/wayfinder

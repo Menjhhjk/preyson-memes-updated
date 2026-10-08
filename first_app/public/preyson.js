@@ -56,7 +56,12 @@
             if (!window.fetch) return;
             event.preventDefault();
             const card = form.closest('.post-card');
-            const buttons = card.querySelectorAll('.reaction-button');
+            const cards = [...document.querySelectorAll('.post-card')].filter(
+                (other) => other.dataset.postId === card.dataset.postId,
+            );
+            const buttons = cards.flatMap((other) => [
+                ...other.querySelectorAll('.reaction-button'),
+            ]);
             const feedback = card.querySelector('.reaction-feedback');
             const data = new FormData(form);
             if (event.submitter?.name)
@@ -89,19 +94,15 @@
                     button.querySelector('.reaction-count').textContent =
                         result.counts[button.dataset.emoji] || '';
                 });
-                card.querySelector('.reaction-total').textContent =
-                    result.total;
-                card.querySelector('.extra-reaction-summary').textContent = [
-                    '🔥',
-                    '🎉',
-                    '🤯',
-                    '👏',
-                    '💀',
-                    '🥰',
-                ]
-                    .filter((emoji) => result.counts[emoji])
-                    .map((emoji) => emoji + ' ' + result.counts[emoji])
-                    .join(' ');
+                cards.forEach((card) => {
+                    card.querySelector('.reaction-total').textContent =
+                        result.total;
+                    card.querySelector('.extra-reaction-summary').textContent =
+                        ['🔥', '🎉', '🤯', '👏', '💀', '🥰']
+                            .filter((emoji) => result.counts[emoji])
+                            .map((emoji) => emoji + ' ' + result.counts[emoji])
+                            .join(' ');
+                });
                 feedback.textContent = result.selected
                     ? 'Reaction saved.'
                     : 'Reaction removed.';

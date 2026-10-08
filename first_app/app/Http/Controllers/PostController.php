@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\User;
 use App\Support\PostFiles;
+use App\Support\PostingRewards;
 use App\Support\PostMedia;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +75,7 @@ class PostController extends Controller
                 foreach ($files as $file) {
                     $path = $this->storeFile($file);
                     $paths[] = $path;
-                    Post::create([
+                    $published = Post::create([
                         'user_id' => $request->user()->id,
                         'title' => $request->filled('title') ? $request->input('title') :
                             $this->filenameTitle($file->getClientOriginalName()),
@@ -82,6 +83,7 @@ class PostController extends Controller
                         'media_type' => PostMedia::category($file),
                         'comments_enabled' => $request->boolean('comments_enabled', true),
                     ]);
+                    PostingRewards::record($owner, $published);
                 }
             });
         } catch (\Throwable $exception) {
@@ -178,13 +180,14 @@ class PostController extends Controller
 
                         $path = $this->storeFile($entry);
                         $paths[] = $path;
-                        Post::create([
+                        $published = Post::create([
                             'user_id' => $owner->id,
                             'title' => $this->filenameTitle(basename($entryName)),
                             'media_path' => $path,
                             'media_type' => PostMedia::category($entry),
                             'comments_enabled' => $request->boolean('comments_enabled', true),
                         ]);
+                        PostingRewards::record($owner, $published);
                         $count++;
                     } finally {
                         fclose($stream);

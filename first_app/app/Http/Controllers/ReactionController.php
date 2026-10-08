@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Models\Reaction;
 use App\Models\User;
+use App\Support\MemberInbox;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class ReactionController extends Controller
             // Lock the account even when no reaction exists yet; the unique index
             // and this lock prevent concurrent requests creating duplicate votes.
             $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+            $post = Post::lockForUpdate()->findOrFail($post->id);
             $reaction = Reaction::where('post_id', $post->id)->where('user_id', $user->id)->first();
 
             if ($reaction?->emoji === $data['emoji']) {
@@ -38,7 +40,11 @@ class ReactionController extends Controller
             }
 
             Reaction::updateOrCreate(['post_id' => $post->id, 'user_id' => $user->id], ['emoji' => $data['emoji']]);
-        });
+            if ($post->ten_reactions_notified_at === null && $post->reactions()->count() >= 10) {
+                $post->forceFill(['ten_reactions_notified_at' => now()])->save();
+                MemberInbox::send($post->user_id, 'reaction_milestone', 'Your first 10 reactions!', 'One of your posts reached 10 reactions. That’s a whole little crowd.', 'post', $post->id, 'ten-reactions:'.$post->id);
+            }
+        }, 3);
 
         if ($request->expectsJson()) {
             $counts = Reaction::where('post_id', $post->id)->select('emoji')
